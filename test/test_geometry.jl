@@ -1,4 +1,6 @@
+using PyCall
 using geometry, Test
+@pyimport meshio
 
 # Test the type parametrization
 p1 = Point(0.5)
@@ -24,6 +26,11 @@ p5 = p4 + p3
 p6 = p4 - p3
 @test p6.x == (1.0, 2.5, 3.5)
 
+# Create a Vertex in 1D, 2D
+v1 = Vertex((1,), (p1,))
+@test typeof(v1) <: Vertex{1}
+v1 = Vertex((1,), (p2,))
+@test typeof(v1) <: Vertex{2}
 
 # Create line elements in 1D and 2D
 p1 = Point(0.5)
@@ -91,6 +98,11 @@ q2 = Quad9((1,2,3,4,5,6,7,8,9),
 			(p1,p2,p3,p4,p5,p6,p7,p8,p9))
 @test typeof(q2) <: Quad9{2}
 @test length(q2.node) == 9
+
+
+mesh_data = meshio.read("Circle.msh")
+
+
 
 
 

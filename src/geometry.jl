@@ -7,8 +7,8 @@ import Base: *, +, -
 # We 
 
 # Export types and methods
-export Point, *, +, -, Triangulation, Line, Line3, Triangle, 
-		Triangle6, Quad, Quad9
+export Point, *, +, -, Triangulation, Vertex, Line, Line3, Triangle, 
+		Triangle6, Quad, Quad9, Mesh, LoadMesh
 
 
 """
@@ -82,6 +82,21 @@ triangulations in `spacedim` dimensional space.
 """
 abstract type Triangulation{dim, spacedim} end
 
+"""
+	Vertex <: Triangulation{0, spacedim}
+0D point element
+# Attributes
+- `node::NTuple{1, Tuple{Int64, Point{spacedim}}}`
+1-Tuple of `(global_node_number, coordinates)`
+"""
+struct Vertex{spacedim} <: Triangulation{0, spacedim}
+	node::NTuple{1, Tuple{Int64, Point{spacedim}}}
+	function Vertex(node_ids::NTuple{1, Int64},
+		coordinates::NTuple{1, Point{spacedim}}) where spacedim
+		node_data = zip(node_ids, coordinates)
+		new{spacedim}(tuple(node_data...))
+	end
+end
 
 """
 	Line <: Triangulation{1, spacedim}
@@ -92,10 +107,10 @@ abstract type Triangulation{dim, spacedim} end
 """
 struct Line{spacedim} <: Triangulation{1, spacedim}
 	node::NTuple{2, Tuple{Int64, Point{spacedim}}}
-	function Line(node_id::NTuple{2, Int64},
+	function Line(node_ids::NTuple{2, Int64},
 		coordinates::NTuple{2, Point{spacedim}}) where spacedim
 		@assert spacedim >= 1
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -109,10 +124,10 @@ end
 """
 struct Line3{spacedim} <: Triangulation{1, spacedim}
 	node::NTuple{3, Tuple{Int64, Point{spacedim}}}
-	function Line3(node_id::NTuple{3, Int64},
+	function Line3(node_ids::NTuple{3, Int64},
 		coordinates::NTuple{3, Point{spacedim}}) where spacedim
 		@assert spacedim >= 1
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -127,10 +142,10 @@ end
 """
 struct Triangle{spacedim} <: Triangulation{2, spacedim}
 	node::NTuple{3, Tuple{Int64, Point{spacedim}}}
-	function Triangle(node_id::NTuple{3, Int64},
+	function Triangle(node_ids::NTuple{3, Int64},
 		coordinates::NTuple{3, Point{spacedim}}) where spacedim
 		@assert spacedim >= 2
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -144,10 +159,10 @@ end
 """
 struct Triangle6{spacedim} <: Triangulation{2, spacedim}
 	node::NTuple{6, Tuple{Int64, Point{spacedim}}}
-	function Triangle6(node_id::NTuple{6, Int64},
+	function Triangle6(node_ids::NTuple{6, Int64},
 		coordinates::NTuple{6, Point{spacedim}}) where spacedim
 		@assert spacedim >= 2
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -161,10 +176,10 @@ end
 """
 struct Quad{spacedim} <: Triangulation{2, spacedim}
 	node::NTuple{4, Tuple{Int64, Point{spacedim}}}
-	function Quad(node_id::NTuple{4, Int64},
+	function Quad(node_ids::NTuple{4, Int64},
 		coordinates::NTuple{4, Point{spacedim}}) where spacedim
 		@assert spacedim >= 2
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -179,10 +194,10 @@ end
 """
 struct Quad9{spacedim} <: Triangulation{2, spacedim}
 	node::NTuple{9, Tuple{Int64, Point{spacedim}}}
-	function Quad9(node_id::NTuple{9, Int64},
+	function Quad9(node_ids::NTuple{9, Int64},
 		coordinates::NTuple{9, Point{spacedim}}) where spacedim
 		@assert spacedim >= 2
-		node_data = zip(node_id, coordinates)
+		node_data = zip(node_ids, coordinates)
 		new{spacedim}(tuple(node_data...))
 	end
 end
@@ -203,17 +218,78 @@ that indicate some logical tag for the nodes, for example "Body", "Boundary", et
 struct Mesh{spacedim}
 	elements::Dict{String, Array{Triangulation{dim, spacedim} where dim, 1}}
 	nodes::Dict{String, Array{Point{spacedim}, 1}}
+	function Mesh(spacedim::Int64)
+		elements = Dict{String, Array{Triangulation{dim, spacedim} where dim, 1}}()
+		nodes = Dict{String, Array{Point{spacedim}, 1}}()
+		new{spacedim}(elements, nodes)
+	end
+end
+
+"""
+	AssembleQuad(mesh::Mesh, mesh_data, tagToGroup::Dict{Int64, String})
+Read `mesh_data[:cells]["quad"]` and construct `Quad` elements. Push these 
+elements into `mesh.elements[group_name]` where `group_name` is obtained
+from `tagToGroup`.
+"""
+function AssembleQuad(mesh::Mesh{spacedim}, mesh_data, tagToGroup::Dict{Int64, String}) where spacedim
+	for i in 1:size(mesh_data[:cells]["quad"])[1]
+		tag = mesh_data[:cell_data]["quad"]["gmsh:physical"][i]
+		group_name = tagToGroup[tag]
+		node_ids = tuple(mesh_data[:cells]["quad"][i,:]...)
+		# gmsh uses 0-based indexing, so shift node numbers by 1
+		node_ids = node_ids .+ 1
+		coordinates = tuple([Point(tuple(mesh_data[:points][i,1:spacedim]...)) for i in node_ids]...)
+		element = Quad(node_ids, coordinates)
+		push!(mesh.elements[group_name], element)
+	end
 end
 
 
 """
-	LoadMesh(filename::String, spacedim::Int64)
-Use `PyCall` and `meshio` to read a `".msh"` file. Use the returned data to construct
-a `Mesh` object in `spacedim` dimensions.
+	LoadMesh(mesh_data, spacedim::Int64)
+Use the `mesh_data` `PyObject` to construct a `Mesh` object in
+`spacedim` dimensions. `mesh_data` may be constructed using `PyCall`
+and the `meshio` package. 
+If `spacedim < 3`, drop the trailing coordinate values of nodal 
+coordinates.
 """
-function LoadMesh(filename::String, spacedim::Int64)
-	
+function LoadMesh(mesh_data, spacedim::Int64)
+	# Initialize the mesh object 
+	mesh = Mesh(spacedim)
+
+	# go through all the keys of field_data. These are the names of the physical
+	# groups. Construct a dictionary tagToGroup such that
+	# tagToGroup[tag::Int] = physical_group_name
+	tagToGroup = Dict{Int64, String}()
+	for key in keys(mesh_data[:field_data])
+		tag = mesh_data[:field_data][key][1]
+		tagToGroup[tag] = key
+		# Initialize an empty array in the mesh object corresponding
+		# to the current key
+		mesh.elements[key] = []
+	end
+
+	for key in keys(mesh_data[:cells])
+		if key == "quad"
+			AssembleQuad(mesh, mesh_data, tagToGroup)
+		end
+	end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # module geometry ends here
