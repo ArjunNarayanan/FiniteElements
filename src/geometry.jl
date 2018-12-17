@@ -2,13 +2,13 @@ module geometry
 # import base operators that will be overloaded. This is just
 # to simplify arithmetic on Points (i.e. scaling and 
 # translation)
-import Base: *, +, -
+import Base: *, +, -, ==
 
 # We 
 
 # Export types and methods
-export Point, *, +, -, Triangulation, Vertex, Line, Line3, Triangle, 
-		Triangle6, Quad, Quad9, Mesh, LoadMesh
+export Point, *, +, -, ==, Triangulation, Vertex, Line, Triangle, 
+		Triangle, Quadrilateral, Mesh, LoadMesh
 
 
 """
@@ -71,134 +71,130 @@ function -(p1::Point{dim}, p2::Point{dim}) where dim
 	return Point(p1.x .- p2.x)
 end
 
+"""
+	==(p1::Point{dim}, p2::Point{dim}) where dim
+Check if two points are equivalent by comparing their
+corresponding tuples.
+i.e. `p1 == p2` if and only if `p1.x == p2.x`
+"""
+function ==(p1::Point{dim}, p2::Point{dim}) where dim
+	return (p1.x == p2.x)
+end
+
 
 """
-	Triangulation{dim, spacedim}
+	Triangulation{P, dim, spacedim}
 Abstract supertype for all `dim` dimensional geometric 
-triangulations in `spacedim` dimensional space.
+triangulations in `spacedim` dimensional space which support
+order `P` polynomial basis functions.
 # Example
-- `Line` is a 1D geometric entity that can be embedded in 
-1D, 2D, or 3D spacedim dimensions
+- 2 node `Line{1,spacedim}` is a linear line element that can be
+embedded in `spacedim` dimensional space.
+- 3 node `Line{2,spacedim}` is a quadratic line element that can be
+embedded in `spacedim` dimensional space.
 """
-abstract type Triangulation{dim, spacedim} end
+abstract type Triangulation{P, dim, spacedim} end
 
 """
-	Vertex <: Triangulation{0, spacedim}
-0D point element
+	Vertex{P, spacedim} <: Triangulation{0, 0, spacedim}
+0D point element. The polynomial order of a point element is taken 
+as zero since it can only store a single constant value and there is 
+no concept of interpolation.
 # Attributes
-- `node::NTuple{1, Tuple{Int64, Point{spacedim}}}`
+- `nodes::NTuple{1, Tuple{Int64, Point{spacedim}}}`
 1-Tuple of `(global_node_number, coordinates)`
 """
-struct Vertex{spacedim} <: Triangulation{0, spacedim}
-	node::NTuple{1, Tuple{Int64, Point{spacedim}}}
+struct Vertex{P, spacedim} <: Triangulation{P, 0, spacedim}
+	nodes::NTuple{1, Tuple{Int64, Point{spacedim}}}
 	function Vertex(node_ids::NTuple{1, Int64},
 		coordinates::NTuple{1, Point{spacedim}}) where spacedim
 		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
+		new{0, spacedim}(tuple(node_data...))
 	end
 end
 
 """
-	Line <: Triangulation{1, spacedim}
-1D linear (2 node) line element
+	Line{P, spacedim} <: Triangulation{P, 1, spacedim}
+1D line element of polynomial order `P` in `spacedim` dimensional
+space.
 # Attributes
-- `node::NTuple{2, Tuple{Int64, Point{spacedim}}}`
+Linear element
+	Line{1, spacedim}
+- `nodes::NTuple{2, Tuple{Int64, Point{spacedim}}}`
 2-Tuple of `(global_node_number, coordinates)`
+Quadratic element
+	Line{2, spacedim}
+- `nodes::NTuple{3, Tuple{Int64, Point{spacedim}}}`
+3-Tuple of `(global_node_number, coordinates)`
 """
-struct Line{spacedim} <: Triangulation{1, spacedim}
-	node::NTuple{2, Tuple{Int64, Point{spacedim}}}
+struct Line{P, spacedim} <: Triangulation{P, 1, spacedim}
+	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
 	function Line(node_ids::NTuple{2, Int64},
 		coordinates::NTuple{2, Point{spacedim}}) where spacedim
-		@assert spacedim >= 1
 		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
+		new{1, spacedim}(tuple(node_data...))
 	end
-end
-
-"""
-	Line3 <: Triangulation{1, spacedim}
-1D quadratic (3 node) line element
-# Attributes
-- `node::NTuple{3, Tuple{Int64, Point{spacedim}}}`
-3-tuple of `(global_node_number, coordinates)`
-"""
-struct Line3{spacedim} <: Triangulation{1, spacedim}
-	node::NTuple{3, Tuple{Int64, Point{spacedim}}}
-	function Line3(node_ids::NTuple{3, Int64},
+	function Line(node_ids::NTuple{3, Int64},
 		coordinates::NTuple{3, Point{spacedim}}) where spacedim
-		@assert spacedim >= 1
 		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
+		new{2, spacedim}(tuple(node_data...))
 	end
 end
 
 
 """
-	Triangle <: Triangulation{2, spacedim}
-2D linear (3 node) triangular element
+	Triangle{P, spacedim} <: Triangulation{P, 2, spacedim}
+2D triangular element of polynomial order `P` in `spacedim` dimensional
+space.
 # Attributes
-- `node::NTuple{3, Tuple{Int64, Point{spacedim}}}`
+Linear element
+	Triangle{1, spacedim}
+- `nodes::NTuple{3, Tuple{Int64, Point{spacedim}}}`
 3-tuple of `(global_node_number, coordinates)`
-"""
-struct Triangle{spacedim} <: Triangulation{2, spacedim}
-	node::NTuple{3, Tuple{Int64, Point{spacedim}}}
-	function Triangle(node_ids::NTuple{3, Int64},
-		coordinates::NTuple{3, Point{spacedim}}) where spacedim
-		@assert spacedim >= 2
-		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
-	end
-end
-
-"""
-	Triangle6{spacedim} <: Triangulation{2, spacedim}
-2D quadratic (6 node) triangular element
-# Attributes
-- `node::NTuple{6, Tuple{Int64, Point{spacedim}}}`
+Quadratic element
+	Triangle{2, spacedim}
+- `nodes::NTuple{6, Tuple{Int64, Point{spacedim}}}`
 6-tuple of `(global_node_number, coordinates)`
 """
-struct Triangle6{spacedim} <: Triangulation{2, spacedim}
-	node::NTuple{6, Tuple{Int64, Point{spacedim}}}
-	function Triangle6(node_ids::NTuple{6, Int64},
+struct Triangle{P, spacedim} <: Triangulation{P, 2, spacedim}
+	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
+	function Triangle(node_ids::NTuple{3, Int64},
+		coordinates::NTuple{3, Point{spacedim}}) where spacedim
+		node_data = zip(node_ids, coordinates)
+		new{1, spacedim}(tuple(node_data...))
+	end
+	function Triangle(node_ids::NTuple{6, Int64},
 		coordinates::NTuple{6, Point{spacedim}}) where spacedim
-		@assert spacedim >= 2
 		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
+		new{2, spacedim}(tuple(node_data...))
 	end
 end
 
+
+
 """
-	Quad{spacedim} <: Triangulation{2, spacedim}
-2D linear (4 node) quadrilateral element
+	Quadrilateral{P, spacedim} <: Triangulation{2, spacedim}
+2D quadrilateral element of polynomial order `P` in `spacedim` dimensional
+space.
 # Attributes
-- `node::NTuple{4, Tuple{Int64, Point{spacedim}}}`
+Linear element
+- `nodes::NTuple{4, Tuple{Int64, Point{spacedim}}}`
 4-tuple of `(global_node_number, coordinates)`
-"""
-struct Quad{spacedim} <: Triangulation{2, spacedim}
-	node::NTuple{4, Tuple{Int64, Point{spacedim}}}
-	function Quad(node_ids::NTuple{4, Int64},
-		coordinates::NTuple{4, Point{spacedim}}) where spacedim
-		@assert spacedim >= 2
-		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
-	end
-end
-
-
-"""
-	Quad9{spacedim} <: Triangulation{2, spacedim}
-2D quadratic (9 node) quadrilateral element
-# Attributes
-- `node::NTuple{9, Tuple{Int64, Point{spacedim}}}`
+Quadratic element
+- `nodes::NTuple{9, Tuple{Int64, Point{spacedim}}}`
 9-tuple of `(global_node_number, coordinates)`
 """
-struct Quad9{spacedim} <: Triangulation{2, spacedim}
-	node::NTuple{9, Tuple{Int64, Point{spacedim}}}
-	function Quad9(node_ids::NTuple{9, Int64},
-		coordinates::NTuple{9, Point{spacedim}}) where spacedim
-		@assert spacedim >= 2
+struct Quadrilateral{P, spacedim} <: Triangulation{P, 2, spacedim}
+	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
+	function Quadrilateral(node_ids::NTuple{4, Int64},
+		coordinates::NTuple{4, Point{spacedim}}) where spacedim
 		node_data = zip(node_ids, coordinates)
-		new{spacedim}(tuple(node_data...))
+		new{1, spacedim}(tuple(node_data...))
+	end
+	function Quadrilateral(node_ids::NTuple{9, Int64},
+		coordinates::NTuple{9, Point{spacedim}}) where spacedim
+		node_data = zip(node_ids, coordinates)
+		new{2, spacedim}(tuple(node_data...))
 	end
 end
 
@@ -207,23 +203,51 @@ end
 	Mesh{spacedim}
 A mesh object in `spacedim` dimensional space.
 # Attributes
-- `elements::Dict{String, Array{Triangulation{dim, spacedim} where dim, 1}}`
-Dictionary of triangulation objects accessed by keys that
+- `elements::Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}`
+Array of triangulation objects accessed by keys that
 indicate some logical tag for the elements, for example "Body",
 "Surface", "Boundary", etc.
-- `nodes::Dict{String, Array{Point{spacedim}, 1}}
-Dictionary of point objects representing the nodes of the mesh, accessed by keys 
-that indicate some logical tag for the nodes, for example "Body", "Boundary", etc.
+- `nodes::Array{Point{spacedim}, 1}`
+Array of point objects representing the nodes of the mesh, ordered consistently
+with the global node numbering of `Triangulation` objects.
+- `element_groups::Dict{String, Array{Int64, 1}}`
+Dictionary whose keys are domain indicators like "Body", "Surface", "Boundary", etc.
+The associated arrays contain the element numbers in these domains.
 """
 struct Mesh{spacedim}
-	elements::Dict{String, Array{Triangulation{dim, spacedim} where dim, 1}}
-	nodes::Dict{String, Array{Point{spacedim}, 1}}
+	elements::Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}
+	nodes::Array{Point{spacedim}, 1}
+	element_groups::Dict{String, Array{Int64, 1}}
 	function Mesh(spacedim::Int64)
-		elements = Dict{String, Array{Triangulation{dim, spacedim} where dim, 1}}()
-		nodes = Dict{String, Array{Point{spacedim}, 1}}()
-		new{spacedim}(elements, nodes)
+		elements = Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}()
+		nodes = Array{Point{spacedim}, 1}()
+		element_groups = Dict{String, Array{Int64, 1}}()
+		new{spacedim}(elements, nodes, element_groups)
 	end
 end
+
+
+
+"""
+	ElementNameToType(element_name::String)
+Return the `Triangulation` type corresponding to the `element_name` used by gmsh.
+# Example
+- `ElementNameToType("quad")` returns `Quadrilateral`
+"""
+function ElementNameToType(element_name::String)
+	if element_name == "vertex"
+		return Vertex
+	elseif element_name == "line" || element_name == "line3"
+		return Line
+	elseif element_name == "triangle" || element_name == "triangle6"
+		return Triangle
+	elseif element_name == "quad" || element_name == "quad9"
+		return Quadrilateral
+	else
+		error("Encountered unknown element type.")
+	end
+end
+
 
 """
 	AssembleQuad(mesh::Mesh, mesh_data, tagToGroup::Dict{Int64, String})
@@ -231,16 +255,31 @@ Read `mesh_data[:cells]["quad"]` and construct `Quad` elements. Push these
 elements into `mesh.elements[group_name]` where `group_name` is obtained
 from `tagToGroup`.
 """
-function AssembleQuad(mesh::Mesh{spacedim}, mesh_data, tagToGroup::Dict{Int64, String}) where spacedim
-	for i in 1:size(mesh_data[:cells]["quad"])[1]
-		tag = mesh_data[:cell_data]["quad"]["gmsh:physical"][i]
+function AssembleElements(element_name::String, mesh::Mesh{spacedim}, 
+	mesh_data, tagToGroup::Dict{Int64, String}) where spacedim
+	element_type = ElementNameToType(element_name)
+	for i in 1:size(mesh_data[:cells][element_name])[1]
+		tag = mesh_data[:cell_data][element_name]["gmsh:physical"][i]
 		group_name = tagToGroup[tag]
-		node_ids = tuple(mesh_data[:cells]["quad"][i,:]...)
+		node_ids = tuple(mesh_data[:cells][element_name][i,:]...)
 		# gmsh uses 0-based indexing, so shift node numbers by 1
 		node_ids = node_ids .+ 1
-		coordinates = tuple([Point(tuple(mesh_data[:points][i,1:spacedim]...)) for i in node_ids]...)
-		element = Quad(node_ids, coordinates)
-		push!(mesh.elements[group_name], element)
+		coordinates = tuple([mesh.nodes[j] for j in node_ids]...)
+		element = element_type(node_ids, coordinates)
+		push!(mesh.elements, element)
+		push!(mesh.element_groups[group_name], length(mesh.elements))
+	end
+end
+
+"""
+	LoadPoints(mesh::Mesh{spacedim}, mesh_data) where spacedim
+Generate `Point` objects for each entry in `mesh_data[:points]` and
+push into the `mesh.nodes` array.
+"""
+function LoadPoints(mesh::Mesh{spacedim}, mesh_data) where spacedim
+	for i in 1:size(mesh_data[:points])[1]
+		p = Point(tuple([c for c in mesh_data[:points][i,1:spacedim]]...))
+		push!(mesh.nodes, p)
 	end
 end
 
@@ -266,14 +305,16 @@ function LoadMesh(mesh_data, spacedim::Int64)
 		tagToGroup[tag] = key
 		# Initialize an empty array in the mesh object corresponding
 		# to the current key
-		mesh.elements[key] = []
+		mesh.element_groups[key] = []
 	end
 
+	LoadPoints(mesh, mesh_data)
+
 	for key in keys(mesh_data[:cells])
-		if key == "quad"
-			AssembleQuad(mesh, mesh_data, tagToGroup)
-		end
+		AssembleElements(key, mesh, mesh_data, tagToGroup)
 	end
+
+	return mesh
 end
 
 
