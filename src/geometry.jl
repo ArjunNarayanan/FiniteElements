@@ -4,7 +4,6 @@ module geometry
 # translation)
 import Base: *, +, -, ==
 
-# We 
 
 # Export types and methods
 export Point, *, +, -, ==, Triangulation, Vertex, Line, Triangle, 
@@ -228,6 +227,9 @@ end
 
 
 
+
+
+
 """
 	ElementNameToType(element_name::String)
 Return the `Triangulation` type corresponding to the `element_name` used by gmsh.
@@ -316,6 +318,12 @@ function LoadMesh(mesh_data, spacedim::Int64)
 
 	return mesh
 end
+
+
+
+
+
+
 
 # module geometry ends here
 end
