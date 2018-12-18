@@ -103,8 +103,7 @@ q2 = Quadrilateral((1,2,3,4,5,6,7,8,9),
 @test typeof(q2) <: Quadrilateral{2, 2}
 @test length(q2.nodes) == 9
 
-test_mesh_file = "/home/arjun/Documents/Research/Code/FiniteElements/test/Circle.msh"
-mesh_data = meshio.read(test_mesh_file)
+mesh_data = meshio.read("Test.msh")
 spacedim = 2
 mesh = LoadMesh(mesh_data, spacedim)
 nElements = sum([size(mesh_data[:cells][key])[1] for key in keys(mesh_data[:cells])])
@@ -114,6 +113,10 @@ prand = Point(tuple([mesh_data[:points][p_rand_index,j] for j in 1:spacedim]...)
 
 @test length(mesh.elements) == nElements
 @test prand == mesh.nodes[p_rand_index]
+
+@test haskey(mesh.element_groups, "surface1")
+@test haskey(mesh.element_groups, "surface2")
+@test haskey(mesh.element_groups, "line")
 
 
 
