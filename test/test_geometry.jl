@@ -103,8 +103,8 @@ q2 = Quadrilateral((1,2,3,4,5,6,7,8,9),
 @test typeof(q2) <: Quadrilateral{2, 2}
 @test length(q2.nodes) == 9
 
-
-mesh_data = meshio.read("Circle.msh")
+test_mesh_file = "/home/arjun/Documents/Research/Code/FiniteElements/test/Circle.msh"
+mesh_data = meshio.read(test_mesh_file)
 spacedim = 2
 mesh = LoadMesh(mesh_data, spacedim)
 nElements = sum([size(mesh_data[:cells][key])[1] for key in keys(mesh_data[:cells])])

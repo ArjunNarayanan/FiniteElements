@@ -317,22 +317,6 @@ function LoadMesh(mesh_data, spacedim::Int64)
 	return mesh
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # module geometry ends here
 end
 # module geometry ends here
