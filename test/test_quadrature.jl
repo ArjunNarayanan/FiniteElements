@@ -1,5 +1,16 @@
 using quadrature, geometry, Test
 
+###############################################################
+QLine1 = Quadrature(Line,1)
+QLine2 = Quadrature(Line,2)
+QLine3 = Quadrature(Line,3)
+QLine4 = Quadrature(Line,4)
+QLine5 = Quadrature(Line,5)
+###############################################################
+
+###############################################################
+# Check quadrature on line elements
+
 # 1-point rule should integrate first order polynomial
 function P1(p::Point{1})
 	return 3*p.x[1] + 5
@@ -8,8 +19,6 @@ end
 tol = 1e-10
 
 
-###############################################################
-# Check quadrature on line elements
 I1 = Integrate(P1, QLine1)
 @test abs(I1 - 10.0) < tol
 
@@ -55,6 +64,14 @@ I5 = Integrate(P9, QLine5)
 ###############################################################
 # Check quadrature on triangles
 
+
+###############################################################
+QTriangle1 = Quadrature(Triangle,1)
+QTriangle2 = Quadrature(Triangle,2)
+QTriangle3 = Quadrature(Triangle,3)
+###############################################################
+
+
 # 1-point rule over triangles should integrate
 # 2D linear
 function P11(p::Point{2})
@@ -71,7 +88,7 @@ function P22(p::Point{2})
 	return x*y + x^2 + y^2
 end
 
-I2 = Integrate(P22, QTriangle3)
+I2 = Integrate(P22, QTriangle2)
 @test abs(I2 - 5/24) < tol
 
 # 4 point rule should integrate 
@@ -81,13 +98,23 @@ function P33(p::Point{2})
 	return x^3 + y^3 + x*y^2 + x^2*y
 end
 
-I3 = Integrate(P33, QTriangle4)
+I3 = Integrate(P33, QTriangle3)
 @test abs(I3 - 2/15) < tol
 ###############################################################
 
 
 ###############################################################
 # Check quadrature on quadrilaterals
+
+
+###############################################################
+QQuad1 = Quadrature(Quadrilateral, 1)
+QQuad2 = Quadrature(Quadrilateral, 2)
+QQuad3 = Quadrature(Quadrilateral, 3)
+QQuad4 = Quadrature(Quadrilateral, 4)
+QQuad5 = Quadrature(Quadrilateral, 5)
+###############################################################
+
 
 # 1-point rule should integrate x, y
 function PQ11(p::Point{2})
