@@ -6,7 +6,8 @@ import Base: *
 
 export Quadrature, QLine1, QLine2, QLine3, QLine4, QLine5,
 		QTriangle1, QTriangle3, QTriangle4,
-		QQuad1, QQuad2, QQuad3, QQuad4, QQuad5
+		QQuad1, QQuad2, QQuad3, QQuad4, QQuad5,
+		Integrate
 
 """
 	Quadrature{T <: Triangulation,N}
@@ -78,26 +79,26 @@ QLine5 = Quadrature{Line,5}((p1,p2,p3,p4,p5),
 ###############################################################
 # Defining specific quadrature rules over triangles
 p1 = Point(1/3, 1/3)
-w1 = 1.0
+w1 = 0.5
 QTriangle1 = Quadrature{Triangle,1}((p1,), (w1,))
 
 p1 = Point(1/6, 1/6)
-w1 = 1/3
+w1 = 1/6
 p2 = Point(2/3, 1/6)
-w2 = 1/3
+w2 = 1/6
 p3 = Point(1/6, 2/3)
-w3 = 1/3
+w3 = 1/6
 QTriangle3 = Quadrature{Triangle,3}((p1,p2,p3),
 									(w1,w2,w3))
 
 p1 = Point(1/3,1/3)
-w1 = -27/48
+w1 = -27/96
 p2 = Point(1/5,1/5)
-w2 = 25/48
+w2 = 25/96
 p3 = Point(1/5,3/5)
-w3 = 25/48
+w3 = 25/96
 p4 = Point(3/5,1/5)
-w4 = 25/48
+w4 = 25/96
 
 QTriangle4 = Quadrature{Triangle,4}((p1,p2,p3,p4),
 									(w1,w2,w3,w4))
@@ -145,6 +146,20 @@ QQuad4 = QLine4*QLine4
 QQuad5 = QLine5*QLine5
 ###############################################################
 
+
+"""
+	Integrate(f::Function, q::Quadrature)
+Integrate the function `f` using the quadrature rule `q`.
+`f` is a function of ß`Point{spacedim}` where `spacedim` is 
+consistent with the type of points in `q`.
+"""
+function Integrate(f::Function, q::Quadrature)
+	I = 0.0
+	for i in eachindex(q.points)
+		I += f(q.points[i])*q.weights[i]
+	end
+	return I
+end
 
 
 
