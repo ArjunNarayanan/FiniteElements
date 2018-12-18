@@ -1,0 +1,2 @@
+# Ignore vtk files which are typically o/p files
+*.vtk
