@@ -168,4 +168,5 @@ I5 = Integrate(PQ55, QQuad5)
 
 
 
-
+# If all tests pass
+true

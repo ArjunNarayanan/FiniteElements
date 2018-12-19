@@ -121,11 +121,5 @@ prand = Point(tuple([mesh_data[:points][p_rand_index,j] for j in 1:spacedim]...)
 
 
 
-
-
-
-
-
-
-
-
+# If all tests pass
+true
