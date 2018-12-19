@@ -2,11 +2,11 @@ module geometry
 # import base operators that will be overloaded. This is just
 # to simplify arithmetic on Points (i.e. scaling and 
 # translation)
-import Base: *, +, -, ==
+import Base: *, +, -, ==, getindex
 
 
 # Export types and methods
-export Point, *, +, -, ==, Triangulation, Vertex, Line, Triangle, 
+export Point, *, +, -, ==, getindex, Triangulation, Vertex, Line, Triangle, 
 		Triangle, Quadrilateral, Mesh, LoadMesh
 
 
@@ -31,10 +31,20 @@ struct Point{dim}
 		new{3}((x, y, z))
 	end
 	function Point(x::NTuple{N, Float64}) where N
-		@assert (N > 0 && N <= 3) "Points must be in Euclidean space"
 		new{N}(x)
 	end
 end
+
+"""
+	getindex(p::Point, i::Int64)
+Return the `i`th component of the coordinates of point `p`
+i.e. `p.x[i]`.
+"""
+function getindex(p::Point, i::Int64)
+	return p.x[i]
+end
+
+
 
 
 """
