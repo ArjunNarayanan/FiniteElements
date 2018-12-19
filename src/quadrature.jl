@@ -19,7 +19,7 @@ Tuple of `N` quadrature points in `spacedim` dimensional space.
 - `weights::NTuple{N, Float64} where N`
 Associated weights of the quadrature points.
 """
-struct Quadrature{T <: Triangulation, order}
+struct Quadrature{Triangulation, order}
 	points::NTuple{N, Point{spacedim}} where {N, spacedim}
 	weights::NTuple{N, Float64} where N
 	function Quadrature(::Type{Line}, order::Int64)
