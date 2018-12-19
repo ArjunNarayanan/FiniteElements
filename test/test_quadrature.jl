@@ -1,4 +1,4 @@
-using quadrature, geometry, Test
+using FiniteElements, Test
 
 ###############################################################
 QLine1 = Quadrature(Line,1)

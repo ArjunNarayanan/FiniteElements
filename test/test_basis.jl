@@ -1,5 +1,5 @@
 using Test
-using geometry, elements
+using FiniteElements
 
 basis_types = [Line{1}, Line{2}, Triangle{1}, Triangle{2},
 				Quadrilateral{1}, Quadrilateral{2}]

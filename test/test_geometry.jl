@@ -1,6 +1,6 @@
 using Revise
 using PyCall
-using geometry, Test
+using FiniteElements, Test
 @pyimport meshio
 
 # Test the type parametrization

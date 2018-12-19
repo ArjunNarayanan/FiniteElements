@@ -1,8 +1,11 @@
 module elements
-using geometry, quadrature
+
+import Base: getindex
+
+using geometry, quadrature, ForwardDiff
 
 
-export Basis
+export Basis, Master, getindex
 
 """
 	Basis{T <: Triangulation}
@@ -99,9 +102,96 @@ struct Basis{Triangulation}
 end
 
 
+"""
+	values(basis::Basis, quadrature::Quadrature)
+Compute the value of each `basis.functions` at each `quadrature.points`
+and store it in an array of size 
+`(n_basis_functions, n_quadrature_points)`.
+Return array.
+"""
+function values(basis::Basis, quadrature::Quadrature)
+	vals = zeros(length(basis.functions), length(quadrature.points))
+	for i in eachindex(quadrature.points)
+		p = quadrature.points[i]
+		for j in eachindex(basis.functions)
+			vals[j,i] = basis.functions[j](p)
+		end
+	end
+	return vals
+end
+
+
+"""
+	gradients(basis::Basis, quadrature::Quadrature)
+Compute the gradient of each `basis.functions` at each `quadrature.points`
+store it in an array of size
+`(n_basis_functions, n_quadrature_points)`.
+Return array.
+"""
+function gradients(basis::Basis, quadrature::Quadrature)
+	n = length(basis.functions)
+	p = length(quadrature.points)
+	grads = Array{Array{Float64, 1}, 2}(undef, n, p)
+	for i in eachindex(quadrature.points)
+		p = quadrature.points[i]
+		for j in eachindex(basis.functions)
+			grads[j,i] = ForwardDiff.gradient(basis.functions[j], [x for x in p.x])
+		end
+	end
+	return grads
+end
 
 
 
+
+"""
+	Master{T <: Triangulation}
+A type that stores all required basis function information like values, 
+gradients, etc.
+# Attributes
+	basis::Basis{T}
+The associated `Basis` object.
+	quadrature::Quadrature{T >: Triangulation}
+The associated `Quadrature` object.
+	data::Dict{Symbol, Array}
+The required data evaluated at the quadrature points.
+Accepted symbols which act as keys are:
+`:values`, `:gradients`
+# Constructor
+	Master(T::Type{<:Triangulation}, order::Int64, args::Vararg{Symbol})
+`T` is the `Triangulation` object on which the basis and quadrature rules
+are to be computed.
+`order` is the order of quadrature rule to be used.
+	args
+- `:values` - compute basis function values
+- `:gradients` - compute basis function gradients
+"""
+struct Master{T <: Triangulation}
+	basis::Basis{T}
+	quadrature::Quadrature{P} where {P >: T}
+	data::Dict{Symbol, Array}
+	function Master(T::Type{<:Triangulation}, order::Int64, 
+		args::Vararg{Symbol})
+		basis = Basis(T)
+		quadrature = Quadrature(T, order)
+		data = Dict{Symbol, Array}()
+
+		for arg in args
+			data[arg] = eval(arg)(basis, quadrature)
+		end
+
+		new{T}(basis, quadrature, data)
+	end
+end
+
+
+"""
+	getindex(m::Master, v::Symbol)
+Convenience shorthand for `m.data[v]`. 
+"""
+function getindex(m::Master, v::Symbol)
+	return m.data[v]
+end
 
 
 

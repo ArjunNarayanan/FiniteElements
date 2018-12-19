@@ -22,7 +22,7 @@ Associated weights of the quadrature points.
 struct Quadrature{Triangulation, order}
 	points::NTuple{N, Point{spacedim}} where {N, spacedim}
 	weights::NTuple{N, Float64} where N
-	function Quadrature(::Type{Line}, order::Int64)
+	function Quadrature(::Type{<:Line}, order::Int64)
 		if order == 1
 			p1 = Point(0.0)
 			w1 = 2.0
@@ -71,7 +71,7 @@ struct Quadrature{Triangulation, order}
 			error("The requested quadrature order has not been implemented")
 		end
 	end
-	function Quadrature(::Type{Triangle}, order::Int64)
+	function Quadrature(::Type{<:Triangle}, order::Int64)
 		if order == 1
 			p1 = Point(1/3, 1/3)
 			w1 = 0.5
@@ -100,7 +100,7 @@ struct Quadrature{Triangulation, order}
 			error("The requested quadrature order has not been implemented")
 		end
 	end
-	function Quadrature(::Type{Quadrilateral}, order::Int64)
+	function Quadrature(::Type{<:Quadrilateral}, order::Int64)
 		q1 = Quadrature(Line,order)
 		points = Array{Point{2}, 1}()
 		weights = Array{Float64, 1}()
