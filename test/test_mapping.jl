@@ -62,6 +62,12 @@ for i in 1:4
 	@test abs(dxdη[i][1] - mapping[:jacobian][i][2,1]) < tol
 	@test abs(dxdη[i][2] - mapping[:jacobian][i][2,2]) < tol
 end
+
+for i in 1:4
+	@test abs(det(mapping[:jacobian][i]) - mapping[:determinant][i]) < tol
+	@test norm(inv(mapping[:jacobian][i]) - mapping[:inverse_jacobian][i]) < tol
+end
+
 ##################################################
 
 

@@ -52,3 +52,4 @@ TestTriangulation(Quadrilateral,2,4)
 TestTriangulation(Quadrilateral,2,5)
 
 
+true
