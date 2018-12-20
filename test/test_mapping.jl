@@ -11,7 +11,7 @@ master = Master(Triangle{1}, 1, :values, :gradients)
 p1 = Point(1,1)
 p2 = Point(4,2)
 p3 = Point(2,4)
-t1 = Triangle((1,2,3), (p1,p2,p3))
+t1 = Triangle{1}((1,2,3), (p1,p2,p3))
 
 mapping = Map(master, Triangle{1,2}, :coordinates, :derivatives)
 
@@ -38,7 +38,7 @@ p1 = Point(2,2)
 p2 = Point(6,2)
 p3 = Point(6,10)
 p4 = Point(3,8)
-q1 = Quadrilateral((1,2,3,4), (p1,p2,p3,p4))
+q1 = Quadrilateral{1}((1,2,3,4), (p1,p2,p3,p4))
 
 mapping = Map(master, Quadrilateral{1,2}, :coordinates, :derivatives)
 
@@ -49,12 +49,12 @@ reinit(mapping, master, q1)
 @test length(mapping[:coordinates]) == 4
 @test length(mapping[:jacobian]) == 4
 
-p = [sum([master[:values][i,j]*q1.nodes[i][2] for i = 1:4]) for j in 1:4]
+p = [sum([master[:values][i,j]*q1.points[i] for i = 1:4]) for j in 1:4]
 
 @test norm([norm([p[j][i] - mapping[:coordinates][j][i] for i in 1:2]) for j in 1:4]) < tol
 
-dxdξ = [sum([ master[:gradients][i,j][1]*q1.nodes[i][2] for i in 1:4]) for j in 1:4]
-dxdη = [sum([ master[:gradients][i,j][2]*q1.nodes[i][2] for i in 1:4]) for j in 1:4]
+dxdξ = [sum([ master[:gradients][i,j][1]*q1.points[i] for i in 1:4]) for j in 1:4]
+dxdη = [sum([ master[:gradients][i,j][2]*q1.points[i] for i in 1:4]) for j in 1:4]
 
 for i in 1:4
 	@test abs(dxdξ[i][1] - mapping[:jacobian][i][1,1]) < tol

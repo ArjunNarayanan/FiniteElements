@@ -96,7 +96,7 @@ function coordinates(mapping::Map{T}, master::Master{T},
 	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
 	for q in 1:length(master.quadrature.points)
 		for i in 1:spacedim
-			mapping.data[:coordinates][q][i] = sum([master[:values][I,q]*element.nodes[I][2][i] for I in 1:length(master.basis.functions)])
+			mapping.data[:coordinates][q][i] = sum([master[:values][I,q]*element.points[I][i] for I in 1:length(master.basis.functions)])
 		end
 	end
 end
@@ -138,7 +138,7 @@ function derivatives(mapping::Map{T}, master::Master{T},
 	for q in 1:length(master.quadrature.points)
 		for j in 1:spacedim
 			for i in 1:dim
-				mapping.data[:jacobian][q][i,j] = sum([master[:gradients][I,q][i]*element.nodes[I][2][j] for I in 1:length(master.basis.functions)])
+				mapping.data[:jacobian][q][i,j] = sum([master[:gradients][I,q][i]*element.points[I][j] for I in 1:length(master.basis.functions)])
 			end
 		end
 		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q])

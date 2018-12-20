@@ -109,25 +109,22 @@ embedded in `spacedim` dimensional space.
 abstract type Triangulation{P, dim, spacedim} end
 
 """
-	Vertex{P, spacedim} <: Triangulation{0, 0, spacedim}
+	Vertex{spacedim} <: Triangulation{0, 0, spacedim}
 0D point element. The polynomial order of a point element is taken 
 as zero since it can only store a single constant value and there is 
 no concept of interpolation.
 # Attributes
-- `nodes::NTuple{1, Tuple{Int64, Point{spacedim}}}`
-1-Tuple of `(global_node_number, coordinates)`
+- `points::Tuple{Point{spacedim}}
+Coordinates of the point specifying the vertex.
+- `nodes::Tuple{Int64}
+Global node ID of the corresponding node
 """
-struct Vertex{P, spacedim} <: Triangulation{P, 0, spacedim}
-	nodes::NTuple{1, Tuple{Int64, Point{spacedim}}}
-	function Vertex(node_ids::NTuple{1, Int64},
-		coordinates::NTuple{1, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{0, spacedim}(tuple(node_data...))
-	end
-	function Vertex{0}(node_ids::NTuple{1, Int64},
-		coordinates::NTuple{1, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-			new{0, spacedim}(tuple(node_data...))
+struct Vertex{spacedim} <: Triangulation{0, 0, spacedim}
+	nodes::Tuple{Int64}
+	points::Tuple{Point{spacedim}}
+	function Vertex(nodes::Tuple{Int64},
+		points::Tuple{Point{spacedim}}) where spacedim
+			new{spacedim}(nodes, points)
 	end
 end
 
@@ -136,26 +133,19 @@ end
 1D line element of polynomial order `P` in `spacedim` dimensional
 space.
 # Attributes
-Linear element
-	Line{1, spacedim}
-- `nodes::NTuple{2, Tuple{Int64, Point{spacedim}}}`
-2-Tuple of `(global_node_number, coordinates)`
-Quadratic element
-	Line{2, spacedim}
-- `nodes::NTuple{3, Tuple{Int64, Point{spacedim}}}`
-3-Tuple of `(global_node_number, coordinates)`
+- `nodes::NTuple{N, Int64} where N` - the global node numbers
+- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
 """
 struct Line{P, spacedim} <: Triangulation{P, 1, spacedim}
-	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
-	function Line(node_ids::NTuple{2, Int64},
-		coordinates::NTuple{2, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{1, spacedim}(tuple(node_data...))
+	nodes::NTuple{N, Int64} where N
+	points::NTuple{N, Point{spacedim}} where N
+	function Line{1}(nodes::NTuple{2, Int64},
+		points::NTuple{2, Point{spacedim}}) where spacedim
+		new{1,spacedim}(nodes, points)
 	end
-	function Line(node_ids::NTuple{3, Int64},
-		coordinates::NTuple{3, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{2, spacedim}(tuple(node_data...))
+	function Line{2}(nodes::NTuple{3, Int64},
+		points::NTuple{3, Point{spacedim}}) where spacedim
+		new{2,spacedim}(nodes, points)
 	end
 end
 
@@ -165,26 +155,19 @@ end
 2D triangular element of polynomial order `P` in `spacedim` dimensional
 space.
 # Attributes
-Linear element
-	Triangle{1, spacedim}
-- `nodes::NTuple{3, Tuple{Int64, Point{spacedim}}}`
-3-tuple of `(global_node_number, coordinates)`
-Quadratic element
-	Triangle{2, spacedim}
-- `nodes::NTuple{6, Tuple{Int64, Point{spacedim}}}`
-6-tuple of `(global_node_number, coordinates)`
+- `nodes::NTuple{N, Int64} where N` - the global node numbers
+- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
 """
 struct Triangle{P, spacedim} <: Triangulation{P, 2, spacedim}
-	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
-	function Triangle(node_ids::NTuple{3, Int64},
-		coordinates::NTuple{3, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{1, spacedim}(tuple(node_data...))
+	nodes::NTuple{N, Int64} where N
+	points::NTuple{N, Point{spacedim}} where N
+	function Triangle{1}(nodes::NTuple{3, Int64},
+		points::NTuple{3, Point{spacedim}}) where spacedim
+		new{1, spacedim}(nodes, points)
 	end
-	function Triangle(node_ids::NTuple{6, Int64},
-		coordinates::NTuple{6, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{2, spacedim}(tuple(node_data...))
+	function Triangle{2}(nodes::NTuple{6, Int64},
+		points::NTuple{6, Point{spacedim}}) where spacedim
+		new{2, spacedim}(nodes, points)
 	end
 end
 
@@ -195,24 +178,19 @@ end
 2D quadrilateral element of polynomial order `P` in `spacedim` dimensional
 space.
 # Attributes
-Linear element
-- `nodes::NTuple{4, Tuple{Int64, Point{spacedim}}}`
-4-tuple of `(global_node_number, coordinates)`
-Quadratic element
-- `nodes::NTuple{9, Tuple{Int64, Point{spacedim}}}`
-9-tuple of `(global_node_number, coordinates)`
+- `nodes::NTuple{N, Int64} where N` - the global node numbers
+- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
 """
 struct Quadrilateral{P, spacedim} <: Triangulation{P, 2, spacedim}
-	nodes::NTuple{N, Tuple{Int64, Point{spacedim}}} where N
-	function Quadrilateral(node_ids::NTuple{4, Int64},
-		coordinates::NTuple{4, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{1, spacedim}(tuple(node_data...))
+	nodes::NTuple{N, Int64} where N
+	points::NTuple{N, Point{spacedim}} where N
+	function Quadrilateral{1}(nodes::NTuple{4, Int64},
+		points::NTuple{4, Point{spacedim}}) where spacedim
+		new{1, spacedim}(nodes, points)
 	end
-	function Quadrilateral(node_ids::NTuple{9, Int64},
-		coordinates::NTuple{9, Point{spacedim}}) where spacedim
-		node_data = zip(node_ids, coordinates)
-		new{2, spacedim}(tuple(node_data...))
+	function Quadrilateral{2}(nodes::NTuple{9, Int64},
+		points::NTuple{9, Point{spacedim}}) where spacedim
+		new{2, spacedim}(nodes, points)
 	end
 end
 
@@ -252,12 +230,12 @@ end
 
 
 elementTypes = Dict("vertex" => Vertex,
-					"line" => Line,
-					"line3" => Line,
-					"triangle" => Triangle,
-					"triangle6" => Triangle,
-					"quad" => Quadrilateral,
-					"quad9" => Quadrilateral)
+					"line" => Line{1},
+					"line3" => Line{2},
+					"triangle" => Triangle{1},
+					"triangle6" => Triangle{2},
+					"quad" => Quadrilateral{1},
+					"quad9" => Quadrilateral{2})
 
 
 
