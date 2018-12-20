@@ -21,16 +21,16 @@ dimensional space.
 """
 struct Point{dim}
 	x::NTuple{dim, Float64}
-	function Point(x::Float64)
+	function Point(x)
 		new{1}((x,))
 	end
-	function Point(x::Float64, y::Float64)
+	function Point(x, y)
 		new{2}((x, y))
 	end
-	function Point(x::Float64, y::Float64, z::Float64)
+	function Point(x, y, z)
 		new{3}((x, y, z))
 	end
-	function Point(x::NTuple{N, Float64}) where N
+	function Point(x::NTuple{N, T}) where {N,T}
 		new{N}(x)
 	end
 end
