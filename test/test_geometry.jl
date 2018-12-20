@@ -18,17 +18,17 @@ p4 = Point((1.0, 2.5, 3.5))
 
 # Test multiplication by scalar
 p4 = 2.0*p3
-@test p4.x == (2.0, 5.0, 7.0)
+@test p4.x == [2.0, 5.0, 7.0]
 p4 = p3*2.0
-@test p4.x == (2.0, 5.0, 7.0)
+@test p4.x == [2.0, 5.0, 7.0]
 
 # Test addition
 p5 = p4 + p3
-@test p5.x == (3.0, 7.5, 10.5)
+@test p5.x == [3.0, 7.5, 10.5]
 
 # Test subtraction
 p6 = p4 - p3
-@test p6.x == (1.0, 2.5, 3.5)
+@test p6.x == [1.0, 2.5, 3.5]
 
 # Create a Vertex in 1D, 2D
 v1 = Vertex((1,), (p1,))
@@ -117,6 +117,8 @@ prand = Point(tuple([mesh_data[:points][p_rand_index,j] for j in 1:spacedim]...)
 @test haskey(mesh.element_groups, "surface1")
 @test haskey(mesh.element_groups, "surface2")
 @test haskey(mesh.element_groups, "line")
+
+# @test haskey(mesh.element_types,)
 
 
 

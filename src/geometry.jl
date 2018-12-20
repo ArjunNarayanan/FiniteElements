@@ -4,6 +4,7 @@ module geometry
 # translation)
 import Base: *, +, -, ==, getindex
 
+using StaticArrays
 
 # Export types and methods
 export Point, *, +, -, ==, getindex, Triangulation, Vertex, Line, Triangle, 
@@ -20,7 +21,7 @@ A parametrized type representing a point in `dim`
 dimensional space.
 """
 struct Point{dim}
-	x::NTuple{dim, Float64}
+	x::SVector{dim, Float64}
 	function Point(x)
 		new{1}((x,))
 	end
@@ -32,6 +33,9 @@ struct Point{dim}
 	end
 	function Point(x::NTuple{N, T}) where {N,T}
 		new{N}(x)
+	end
+	function Point(x::SVector{dim, Float64}) where dim
+		new{dim}(x)
 	end
 end
 
@@ -119,6 +123,11 @@ struct Vertex{P, spacedim} <: Triangulation{P, 0, spacedim}
 		coordinates::NTuple{1, Point{spacedim}}) where spacedim
 		node_data = zip(node_ids, coordinates)
 		new{0, spacedim}(tuple(node_data...))
+	end
+	function Vertex{0}(node_ids::NTuple{1, Int64},
+		coordinates::NTuple{1, Point{spacedim}}) where spacedim
+		node_data = zip(node_ids, coordinates)
+			new{0, spacedim}(tuple(node_data...))
 	end
 end
 
@@ -222,43 +231,35 @@ with the global node numbering of `Triangulation` objects.
 - `element_groups::Dict{String, Array{Int64, 1}}`
 Dictionary whose keys are domain indicators like "Body", "Surface", "Boundary", etc.
 The associated arrays contain the element numbers in these domains.
+- `element_types::Dict{Symbol, Array{Int64, 1}}`
+Dictionary whose keys are symbols representing element types, for example 
+`:Quadrilateral{2}`, `Line{2}`, etc.
 """
 struct Mesh{spacedim}
 	elements::Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}
 	nodes::Array{Point{spacedim}, 1}
 	element_groups::Dict{String, Array{Int64, 1}}
+	element_types::Dict{Type{T} where T<:Triangulation, Array{Int64, 1}}
 	function Mesh(spacedim::Int64)
 		elements = Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}()
 		nodes = Array{Point{spacedim}, 1}()
 		element_groups = Dict{String, Array{Int64, 1}}()
-		new{spacedim}(elements, nodes, element_groups)
+		element_types = Dict{Type{T} where T<:Triangulation, Array{Int64, 1}}()
+		new{spacedim}(elements, nodes, element_groups, element_types)
 	end
 end
 
 
 
+elementTypes = Dict("vertex" => Vertex,
+					"line" => Line,
+					"line3" => Line,
+					"triangle" => Triangle,
+					"triangle6" => Triangle,
+					"quad" => Quadrilateral,
+					"quad9" => Quadrilateral)
 
 
-
-"""
-	ElementNameToType(element_name::String)
-Return the `Triangulation` type corresponding to the `element_name` used by gmsh.
-# Example
-- `ElementNameToType("quad")` returns `Quadrilateral`
-"""
-function ElementNameToType(element_name::String)
-	if element_name == "vertex"
-		return Vertex
-	elseif element_name == "line" || element_name == "line3"
-		return Line
-	elseif element_name == "triangle" || element_name == "triangle6"
-		return Triangle
-	elseif element_name == "quad" || element_name == "quad9"
-		return Quadrilateral
-	else
-		error("Encountered unknown element type.")
-	end
-end
 
 
 """
@@ -269,7 +270,8 @@ from `tagToGroup`.
 """
 function AssembleElements(element_name::String, mesh::Mesh{spacedim}, 
 	mesh_data, tagToGroup::Dict{Int64, String}) where spacedim
-	element_type = ElementNameToType(element_name)
+	element_type = elementTypes[element_name]
+	mesh.element_types[element_type] = []
 	for i in 1:size(mesh_data[:cells][element_name])[1]
 		tag = mesh_data[:cell_data][element_name]["gmsh:physical"][i]
 		group_name = tagToGroup[tag]
@@ -280,6 +282,7 @@ function AssembleElements(element_name::String, mesh::Mesh{spacedim},
 		element = element_type(node_ids, coordinates)
 		push!(mesh.elements, element)
 		push!(mesh.element_groups[group_name], length(mesh.elements))
+		push!(mesh.element_types[element_type], length(mesh.elements))
 	end
 end
 
