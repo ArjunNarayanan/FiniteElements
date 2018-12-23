@@ -2,7 +2,7 @@ module quadrature
 using geometry
 
 # Import base operators to be overloaded
-import Base: *
+import Base: *, getindex, eachindex
 
 export Quadrature, Integrate
 
@@ -122,6 +122,23 @@ struct Quadrature{Triangulation, order}
 	end
 end
 
+
+"""
+	getindex(quad::Quadrature, i::Int64)
+Return a tuple `(p,w)` where `p` and `w` are the `i`th
+quadrature point and associated weight.
+"""
+function getindex(quad::Quadrature, i::Int64)
+	return (quad.points[i], quad.weights[i])
+end
+
+"""
+	eachindex(quad::Quadrature)
+Return an iterator over `quad.points`.
+"""
+function eachindex(quad::Quadrature)
+	return eachindex(quad.points)
+end
 
 
 

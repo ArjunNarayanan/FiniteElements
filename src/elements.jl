@@ -142,6 +142,7 @@ function gradients(basis::Basis, quadrature::Quadrature)
 end
 
 
+argToFunc = Dict(0 => values, 1 => gradients)
 
 
 """
@@ -153,31 +154,29 @@ gradients, etc.
 The associated `Basis` object.
 	quadrature::Quadrature{T >: Triangulation}
 The associated `Quadrature` object.
-	data::Dict{Symbol, Array}
-The required data evaluated at the quadrature points.
-Accepted symbols which act as keys are:
-`:values`, `:gradients`
+	data::Dict{Int, Array}
+The required basis function derivative order evaluated at the quadrature points.
 # Constructor
-	Master(T::Type{<:Triangulation}, order::Int64, args::Vararg{Symbol})
+	Master(T::Type{<:Triangulation}, order::Int64, args::Vararg{Int})
 `T` is the `Triangulation` object on which the basis and quadrature rules
 are to be computed.
 `order` is the order of quadrature rule to be used.
-	args
-- `:values` - compute basis function values
-- `:gradients` - compute basis function gradients
+	args: The order of the basis function derivative to compute
+- `0` - compute basis function values
+- `1` - compute basis function gradients
 """
 struct Master{T <: Triangulation}
 	basis::Basis{T}
 	quadrature::Quadrature{P} where {P >: T}
-	data::Dict{Symbol, Array}
+	data::Dict{Int, Array}
 	function Master(T::Type{<:Triangulation}, order::Int64, 
-		args::Vararg{Symbol})
+		args::Vararg{Int})
 		basis = Basis(T)
 		quadrature = Quadrature(T, order)
-		data = Dict{Symbol, Array}()
+		data = Dict{Int, Array}()
 
 		for arg in args
-			data[arg] = eval(arg)(basis, quadrature)
+			data[arg] = argToFunc[arg](basis, quadrature)
 		end
 
 		new{T}(basis, quadrature, data)
@@ -186,10 +185,10 @@ end
 
 
 """
-	getindex(m::Master, v::Symbol)
+	getindex(m::Master, v::Int)
 Convenience shorthand for `m.data[v]`. 
 """
-function getindex(m::Master, v::Symbol)
+function getindex(m::Master, v::Int)
 	return m.data[v]
 end
 

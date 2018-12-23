@@ -6,7 +6,7 @@ tol = 1e-10
 
 ##################################################
 # Test mapping on Triangle{1} with 1-point rule
-master = Master(Triangle{1}, 1, :values, :gradients)
+master = Master(Triangle{1}, 1, 0, 1)
 
 p1 = Point(1,1)
 p2 = Point(4,2)
@@ -32,7 +32,7 @@ exp_jac = [3.0 1.0
 
 ##################################################
 # Test mapping on Quadrilateral{1} with 3 point rule
-master = Master(Quadrilateral{1}, 2, :values, :gradients)
+master = Master(Quadrilateral{1}, 2, 0, 1)
 
 p1 = Point(2,2)
 p2 = Point(6,2)
@@ -49,12 +49,12 @@ reinit(mapping, master, q1)
 @test length(mapping[:coordinates]) == 4
 @test length(mapping[:jacobian]) == 4
 
-p = [sum([master[:values][i,j]*q1.points[i] for i = 1:4]) for j in 1:4]
+p = [sum([master[0][i,j]*q1.points[i] for i = 1:4]) for j in 1:4]
 
 @test norm([norm([p[j][i] - mapping[:coordinates][j][i] for i in 1:2]) for j in 1:4]) < tol
 
-dxdξ = [sum([ master[:gradients][i,j][1]*q1.points[i] for i in 1:4]) for j in 1:4]
-dxdη = [sum([ master[:gradients][i,j][2]*q1.points[i] for i in 1:4]) for j in 1:4]
+dxdξ = [sum([ master[1][i,j][1]*q1.points[i] for i in 1:4]) for j in 1:4]
+dxdη = [sum([ master[1][i,j][2]*q1.points[i] for i in 1:4]) for j in 1:4]
 
 for i in 1:4
 	@test abs(dxdξ[i][1] - mapping[:jacobian][i][1,1]) < tol
