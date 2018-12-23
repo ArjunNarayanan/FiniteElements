@@ -1,68 +1,66 @@
+using TensorOperations
+
+δ = [1.0 0.0
+     0.0 1.0]
+
+λ = 100.0
+μ = 50.0
+
+E = zeros(2,2,2,2)
+
+@tensor begin
+	E[i,j,k,l] = λ*δ[i,j]*δ[k,l] + 2*μ*δ[i,k]*δ[j,l]
+end
+
+
 # We define a Tensor type that is parameterized by its 
 # rank and dimensionality
-abstract type Tensor{rank, dim} end
+abstract type Tensor{rank} end
 
 # We define the trial and test functions as subtypes
 # of Tensor.
-struct TrialFunction{rank, dim} <: Tensor{rank, dim} 
-	brank::Int64
-	arg::Symbol
-	function TrialFunction{rank, dim}() where {rank,dim}
-		new{rank, dim}(0, :values)
-	end
-	function TrialFunction{rank, dim}(brank, arg) where {rank, dim}
-		new{rank, dim}(brank, arg)
+mutable struct TrialFunction{rank} <: Tensor{rank} 
+	der::Int
+	function TrialFunction{rank}() where rank
+		new{rank}(0)
 	end
 end
 
-struct TestFunction{rank, dim} <: Tensor{rank, dim} 
-	brank::Int64
-	arg::Symbol
-	function TestFunction{rank, dim}() where {rank,dim}
-		new{rank, dim}(0, :values)
-	end
-	function TestFunction{rank, dim}(brank, arg) where {rank, dim}
-		new{rank, dim}(brank, arg)
+mutable struct TestFunction{rank} <: Tensor{rank} 
+	der::Int
+	function TestFunction{rank}() where rank
+		new{rank}(0)
 	end
 end
 
 
 # The gradient operator has two effects -- it changes
 # the rank and the arg field
-function gradient(u::TrialFunction{rank,dim}) where {rank, dim}
-	arg = u.arg == :values ? :gradients : error("Higher basis function derivatives are currently not implemented.")
-	return TrialFunction{rank,dim}(u.brank+1, arg)
-end
-
-function gradient(u::TestFunction{rank,dim}) where {rank, dim}
-	arg = u.arg == :values ? :gradients : error("Higher basis function derivatives are currently not implemented.")
-	return TestFunction{rank,dim}(u.brank+1, arg)
+function ∇(u::Tensor)
+	u.arg == 0 ? 1 : error("Higher basis function derivatives are currently not implemented.")
+	u.arg += 1
 end
 
 
 
-# The divergence operator has a single effect. It lowers
-# the rank 
-function divergence(u::TrialFunction{rank, dim}) where {rank, dim}
-	return TrialFunction{rank-1,dim}(u.coeff, u.arg)
-end
 
-function divergence(u::TestFunction{rank, dim}) where {rank, dim}
-	return TestFunction{rank-1,dim}(u.coeff, u.arg)
+macro assemble(B)
+	for arg in B.args
+		println(arg)
+	end
 end
-
-function dot(u::Tensor{rank, dim}, v::Tensor{rank, dim}) where {rank, dim}
-	return 
-end
-
 
 
 
 # How do we want to specify the bilinear and linear forms?
-u = TrialFunction{1, 2}()
-v = TestFunction{1, 2}()
+u = TrialFunction{1}()
+v = TestFunction{1}()
 
-B = :(dot(gradient(v), gradient(u)))
+B = :(∇(v)[i,j]*E[i,j,k,l]*∇(u)[k,l])
+
+@assemble ∇(v)[i,j]*E[i,j,k,l]*∇(u)[k,l]
+
+
 
 
 

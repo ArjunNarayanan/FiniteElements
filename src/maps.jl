@@ -8,7 +8,7 @@ import Base: getindex
 # dimensions
 using StaticArrays
 
-using geometry, quadrature, elements
+using geometry, quadrature, master
 
 export Map, reinit, getindex
 
@@ -72,17 +72,18 @@ functions of quadrature points from the master element to the
 spatial element.
 """
 struct Map{Triangulation, dim, spacedim}
+	master::Master{T} where T
 	data::Dict{Symbol, Array}
 	args::NTuple{N, Symbol} where N
-	function Map(m::Master{T},
+	function Map(master::Master{T},
 				::Type{<:Triangulation{P,dim,spacedim}},
 				args::Vararg{Symbol}) where {T <: Triangulation{P,dim}}  where {P,dim,spacedim}
 		data = Dict{Symbol, Array}()
-		nq = length(m.quadrature.points)
+		nq = length(master.quadrature.points)
 		for arg in args
 			eval(arg)(data, nq, dim, spacedim)
 		end
-		new{T,dim,spacedim}(data, args)
+		new{T,dim,spacedim}(master, data, args)
 	end
 end
 
@@ -153,10 +154,10 @@ end
 	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
 Reinitialize the map on the given element using the master element.
 """
-function reinit(mapping::Map{T}, master::Master{T},
+function reinit(mapping::Map{T},
 	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
 	for arg in mapping.args
-		eval(arg)(mapping, master, element)
+		eval(arg)(mapping, mapping.master, element)
 	end
 end
 
