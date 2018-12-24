@@ -65,8 +65,8 @@ Defines a map on a `Triangulation` from `dim` dimensions into
 jacobian transformation information.
 # Keys
 Currently supported keys
-- `:coordinates` allocate memory to map the coordinates of 
-quadrature points from the master element to the spatial element.
+- `:coordinates` allocate memory to store the spatial coordinates of 
+quadrature points.
 - `:derivatives` allocate memory to map derivatives of basis 
 functions of quadrature points from the master element to the 
 spatial element.
@@ -75,9 +75,8 @@ struct Map{Triangulation, dim, spacedim}
 	master::Master{T} where T
 	data::Dict{Symbol, Array}
 	args::NTuple{N, Symbol} where N
-	function Map(master::Master{T},
-				::Type{<:Triangulation{P,dim,spacedim}},
-				args::Vararg{Symbol}) where {T <: Triangulation{P,dim}}  where {P,dim,spacedim}
+	function Map(master::Master{T}, spacedim::Int64,
+				args::Vararg{Symbol}) where {T <: Triangulation{P,dim}}  where {P,dim}
 		data = Dict{Symbol, Array}()
 		nq = length(master.quadrature.points)
 		for arg in args

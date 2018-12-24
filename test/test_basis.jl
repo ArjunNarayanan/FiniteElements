@@ -1,8 +1,8 @@
 using Test
 using FiniteElements
 
-basis_types = [Line{1}, Line{2}, Triangle{1}, Triangle{2},
-				Quadrilateral{1}, Quadrilateral{2}]
+basis_types = [Line{2}, Line{3}, Triangle{3}, Triangle{6},
+				Quadrilateral{4}, Quadrilateral{9}]
 
 tol = 1e-10
 

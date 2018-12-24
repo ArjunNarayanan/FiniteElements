@@ -8,7 +8,7 @@ using StaticArrays
 
 # Export types and methods
 export Point, *, +, -, ==, getindex, Triangulation, Vertex, Line, Triangle, 
-		Triangle, Quadrilateral, Mesh, LoadMesh
+		Triangle, Quadrilateral, Mesh, loadMesh
 
 
 """
@@ -96,30 +96,27 @@ end
 
 
 """
-	Triangulation{P, dim, spacedim}
+	Triangulation{N, dim, spacedim}
 Abstract supertype for all `dim` dimensional geometric 
-triangulations in `spacedim` dimensional space which support
-order `P` polynomial basis functions.
-# Example
-- 2 node `Line{1,spacedim}` is a linear line element that can be
+triangulations in `spacedim` dimensional space with `N` nodes.
+# Examples
+- 2 node `Line{2,spacedim}` is a linear line element that can be
 embedded in `spacedim` dimensional space.
-- 3 node `Line{2,spacedim}` is a quadratic line element that can be
+- 3 node `Line{3,spacedim}` is a quadratic line element that can be
 embedded in `spacedim` dimensional space.
 """
 abstract type Triangulation{P, dim, spacedim} end
 
 """
-	Vertex{spacedim} <: Triangulation{0, 0, spacedim}
-0D point element. The polynomial order of a point element is taken 
-as zero since it can only store a single constant value and there is 
-no concept of interpolation.
+	Vertex{spacedim} <: Triangulation{1, 0, spacedim}
+1-node, 0 dimensional point element.
 # Attributes
 - `points::Tuple{Point{spacedim}}
 Coordinates of the point specifying the vertex.
 - `nodes::Tuple{Int64}
 Global node ID of the corresponding node
 """
-struct Vertex{spacedim} <: Triangulation{0, 0, spacedim}
+struct Vertex{spacedim} <: Triangulation{1, 0, spacedim}
 	nodes::Tuple{Int64}
 	points::Tuple{Point{spacedim}}
 	function Vertex(nodes::Tuple{Int64},
@@ -129,68 +126,56 @@ struct Vertex{spacedim} <: Triangulation{0, 0, spacedim}
 end
 
 """
-	Line{P, spacedim} <: Triangulation{P, 1, spacedim}
-1D line element of polynomial order `P` in `spacedim` dimensional
+	Line{N, spacedim} <: Triangulation{N, 1, spacedim}
+1D line element with `N` nodes in `spacedim` dimensional
 space.
 # Attributes
-- `nodes::NTuple{N, Int64} where N` - the global node numbers
-- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
+- `nodes::NTuple{N, Int64}` - the global node numbers
+- `points::NTuple{N, Point{spacedim}}` - the corresponding coordinates
 """
-struct Line{P, spacedim} <: Triangulation{P, 1, spacedim}
-	nodes::NTuple{N, Int64} where N
-	points::NTuple{N, Point{spacedim}} where N
-	function Line{1}(nodes::NTuple{2, Int64},
-		points::NTuple{2, Point{spacedim}}) where spacedim
-		new{1,spacedim}(nodes, points)
-	end
-	function Line{2}(nodes::NTuple{3, Int64},
-		points::NTuple{3, Point{spacedim}}) where spacedim
-		new{2,spacedim}(nodes, points)
+struct Line{N, spacedim} <: Triangulation{N, 1, spacedim}
+	nodes::NTuple{N, Int64}
+	points::NTuple{N, Point{spacedim}}
+	function Line{N}(nodes::NTuple{N, Int64},
+		points::NTuple{N, Point{spacedim}}) where {N,spacedim}
+		new{N,spacedim}(nodes, points)
 	end
 end
 
 
 """
-	Triangle{P, spacedim} <: Triangulation{P, 2, spacedim}
-2D triangular element of polynomial order `P` in `spacedim` dimensional
+	Triangle{N, spacedim} <: Triangulation{N, 2, spacedim}
+2D triangular element with `N` nodes in `spacedim` dimensional
 space.
 # Attributes
-- `nodes::NTuple{N, Int64} where N` - the global node numbers
-- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
+- `nodes::NTuple{N, Int64}` - the global node numbers
+- `points::NTuple{N, Point{spacedim}}` - the corresponding coordinates
 """
-struct Triangle{P, spacedim} <: Triangulation{P, 2, spacedim}
-	nodes::NTuple{N, Int64} where N
-	points::NTuple{N, Point{spacedim}} where N
-	function Triangle{1}(nodes::NTuple{3, Int64},
-		points::NTuple{3, Point{spacedim}}) where spacedim
-		new{1, spacedim}(nodes, points)
-	end
-	function Triangle{2}(nodes::NTuple{6, Int64},
-		points::NTuple{6, Point{spacedim}}) where spacedim
-		new{2, spacedim}(nodes, points)
+struct Triangle{N, spacedim} <: Triangulation{N, 2, spacedim}
+	nodes::NTuple{N, Int64}
+	points::NTuple{N, Point{spacedim}}
+	function Triangle{N}(nodes::NTuple{N, Int64},
+		points::NTuple{N, Point{spacedim}}) where {N,spacedim}
+		new{N, spacedim}(nodes, points)
 	end
 end
 
 
 
 """
-	Quadrilateral{P, spacedim} <: Triangulation{2, spacedim}
-2D quadrilateral element of polynomial order `P` in `spacedim` dimensional
+	Quadrilateral{N, spacedim} <: Triangulation{N, 2, spacedim}
+2D quadrilateral element with `N` nodes in `spacedim` dimensional
 space.
 # Attributes
-- `nodes::NTuple{N, Int64} where N` - the global node numbers
-- `points::NTuple{N, Point{spacedim}} where N1` - the corresponding coordinates
+- `nodes::NTuple{N, Int64}` - the global node numbers
+- `points::NTuple{N, Point{spacedim}}` - the corresponding coordinates
 """
-struct Quadrilateral{P, spacedim} <: Triangulation{P, 2, spacedim}
-	nodes::NTuple{N, Int64} where N
-	points::NTuple{N, Point{spacedim}} where N
-	function Quadrilateral{1}(nodes::NTuple{4, Int64},
-		points::NTuple{4, Point{spacedim}}) where spacedim
-		new{1, spacedim}(nodes, points)
-	end
-	function Quadrilateral{2}(nodes::NTuple{9, Int64},
-		points::NTuple{9, Point{spacedim}}) where spacedim
-		new{2, spacedim}(nodes, points)
+struct Quadrilateral{N, spacedim} <: Triangulation{N, 2, spacedim}
+	nodes::NTuple{N, Int64}
+	points::NTuple{N, Point{spacedim}}
+	function Quadrilateral{N}(nodes::NTuple{N, Int64},
+		points::NTuple{N, Point{spacedim}}) where {N,spacedim}
+		new{N, spacedim}(nodes, points)
 	end
 end
 
@@ -211,7 +196,7 @@ Dictionary whose keys are domain indicators like "Body", "Surface", "Boundary", 
 The associated arrays contain the element numbers in these domains.
 - `element_types::Dict{Symbol, Array{Int64, 1}}`
 Dictionary whose keys are symbols representing element types, for example 
-`:Quadrilateral{2}`, `Line{2}`, etc.
+`:Quadrilateral{4}`, `Line{2}`, etc.
 """
 struct Mesh{spacedim}
 	elements::Array{Triangulation{P, dim, spacedim} where {P, dim}, 1}
@@ -223,19 +208,20 @@ struct Mesh{spacedim}
 		nodes = Array{Point{spacedim}, 1}()
 		element_groups = Dict{String, Array{Int64, 1}}()
 		element_types = Dict{Type{T} where T<:Triangulation, Array{Int64, 1}}()
-		new{spacedim}(elements, nodes, element_groups, element_types)
+		new{spacedim}(elements, nodes, element_groups, 
+			element_types)
 	end
 end
 
 
 
 elementTypes = Dict("vertex" => Vertex,
-					"line" => Line{1},
-					"line3" => Line{2},
-					"triangle" => Triangle{1},
-					"triangle6" => Triangle{2},
-					"quad" => Quadrilateral{1},
-					"quad9" => Quadrilateral{2})
+					"line" => Line{2},
+					"line3" => Line{3},
+					"triangle" => Triangle{3},
+					"triangle6" => Triangle{6},
+					"quad" => Quadrilateral{4},
+					"quad9" => Quadrilateral{9})
 
 
 
@@ -285,7 +271,7 @@ and the `meshio` package.
 If `spacedim < 3`, drop the trailing coordinate values of nodal 
 coordinates.
 """
-function LoadMesh(mesh_data, spacedim::Int64)
+function loadMesh(mesh_data, spacedim::Int64)
 	# Initialize the mesh object 
 	mesh = Mesh(spacedim)
 

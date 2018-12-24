@@ -6,16 +6,16 @@ tol = 1e-10
 
 ##################################################
 # Test mapping on Triangle{1} with 1-point rule
-master = Master(Triangle{1}, 1, 0, 1)
+master = Master(Triangle{3}, 1, 0, 1)
 
 p1 = Point(1,1)
 p2 = Point(4,2)
 p3 = Point(2,4)
-t1 = Triangle{1}((1,2,3), (p1,p2,p3))
+t1 = Triangle{3}((1,2,3), (p1,p2,p3))
 
-mapping = Map(master, Triangle{1,2}, :coordinates, :derivatives)
+mapping = Map(master, 2, :coordinates, :derivatives)
 
-reinit(mapping, t1)
+maps.reinit(mapping, t1)
 
 exp_coords = [7/3, 7/3]
 exp_jac = [3.0 1.0
@@ -32,19 +32,19 @@ exp_jac = [3.0 1.0
 
 ##################################################
 # Test mapping on Quadrilateral{1} with 3 point rule
-master = Master(Quadrilateral{1}, 2, 0, 1)
+master = Master(Quadrilateral{4}, 2, 0, 1)
 
 p1 = Point(2,2)
 p2 = Point(6,2)
 p3 = Point(6,10)
 p4 = Point(3,8)
-q1 = Quadrilateral{1}((1,2,3,4), (p1,p2,p3,p4))
+q1 = Quadrilateral{4}((1,2,3,4), (p1,p2,p3,p4))
 
-mapping = Map(master, Quadrilateral{1,2}, :coordinates, :derivatives)
+mapping = Map(master, 2, :coordinates, :derivatives)
 
 exp_coords = [[]]
 
-reinit(mapping, q1)
+maps.reinit(mapping, q1)
 
 @test length(mapping[:coordinates]) == 4
 @test length(mapping[:jacobian]) == 4

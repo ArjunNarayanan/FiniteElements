@@ -5,5 +5,6 @@ using Reexport
 @reexport using quadrature
 @reexport using master
 @reexport using maps
+@reexport using assembly
 
 end
