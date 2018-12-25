@@ -2,14 +2,14 @@ using FiniteElements, Test, TensorOperations, LinearAlgebra
 
 const dofs = 2
 # Construct an arbitrary Triangle{1} object
-p1 = Point(1,1)
-p2 = Point(4,2)
-p3 = Point(2,4)
-T = Triangle{3}((1,2,3), (p1,p2,p3))
+t1 = [1. 1
+	  4 2
+	  2 4]
+T = Triangle{3}
 
 
-element_matrix = elementMatrix(typeof(T), dofs)
-element_rhs = elementRHS(typeof(T), dofs)
+element_matrix = elementMatrix(T, dofs)
+element_rhs = elementRHS(T, dofs)
 
 # Test that the element matrix is of correct size
 @test size(element_matrix) == (3,3)
@@ -47,21 +47,21 @@ end
 reinit(element_matrix)
 reinit(element_rhs)
 
-master = Master(Triangle{3}, 2, 0, 1)
-mapping = Map(master, 2, :coordinates, :derivatives)
-reinit(mapping, T)
+master_elmt = Master(T, 2, 0, 1)
+mapping = Map(master_elmt, 2, :coordinates, :derivatives)
+reinit(mapping, t1)
 
 system_matrix = SystemMatrix(dofs)
 system_rhs = SystemRHS(dofs)
 KIJ = zeros(2,2)
 
-for q in eachindex(master.quadrature.points)
-	pq = master.quadrature.points[q]
-	wq = master.quadrature.weights[q]
-	for I in 1:length(T.nodes)
-		∇ϕI = mapping[:inverse_jacobian][q]'*master[1][I,q]
-		for J in 1:length(T.nodes)
-			∇ϕJ = mapping[:inverse_jacobian][q]'*master[1][J,q]
+for q in eachindex(master_elmt.quadrature.points)
+	pq = master_elmt.quadrature.points[q]
+	wq = master_elmt.quadrature.weights[q]
+	for I in 1:size(t1)[1]
+		∇ϕI = mapping[:inverse_jacobian][q]'*master_elmt[1][I,q]
+		for J in 1:size(t1)[1]
+			∇ϕJ = mapping[:inverse_jacobian][q]'*master_elmt[1][J,q]
 
 			fill!(KIJ, 0.0)
 			
@@ -97,17 +97,17 @@ end
 
 ##################################################
 # Test assembly for Quadrilateral{4}
-master = Master(Quadrilateral{4}, 2, 0, 1)
-mapping = Map(master, 2, :coordinates, :derivatives)
+master_elmt = Master(Quadrilateral{4}, 2, 0, 1)
+mapping = Map(master_elmt, 2, :coordinates, :derivatives)
 
-p1 = Point(2,2)
-p2 = Point(6,2)
-p3 = Point(6,10)
-p4 = Point(3,8)
-T = Quadrilateral{4}((1,2,3,4), (p1,p2,p3,p4))
+q1 = [2. 2
+	  6 2
+	  6 10
+      3 8]
+T = Quadrilateral{4}
 
-element_matrix = elementMatrix(typeof(T), dofs)
-element_rhs = elementRHS(typeof(T), dofs)
+element_matrix = elementMatrix(T, dofs)
+element_rhs = elementRHS(T, dofs)
 
 # Test that the element matrix is of correct size
 @test size(element_matrix) == (4,4)
@@ -117,19 +117,19 @@ reinit(element_matrix)
 reinit(element_rhs)
 
 
-reinit(mapping, T)
+reinit(mapping, q1)
 
 system_matrix = SystemMatrix(dofs)
 system_rhs = SystemRHS(dofs)
 KIJ = zeros(2,2)
 
-for q in eachindex(master.quadrature.points)
-	pq = master.quadrature.points[q]
-	wq = master.quadrature.weights[q]
-	for I in 1:length(T.nodes)
-		∇ϕI = mapping[:inverse_jacobian][q]'*master[1][I,q]
-		for J in 1:length(T.nodes)
-			∇ϕJ = mapping[:inverse_jacobian][q]'*master[1][J,q]
+for q in eachindex(master_elmt.quadrature.points)
+	pq = master_elmt.quadrature.points[q]
+	wq = master_elmt.quadrature.weights[q]
+	for I in 1:size(q1)[1]
+		∇ϕI = mapping[:inverse_jacobian][q]'*master_elmt[1][I,q]
+		for J in 1:size(q1)[1]
+			∇ϕJ = mapping[:inverse_jacobian][q]'*master_elmt[1][J,q]
 
 			fill!(KIJ, 0.0)
 			

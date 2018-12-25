@@ -1,6 +1,6 @@
 module assembly
 
-using geometry, StaticArrays, SparseArrays
+using geometry, SparseArrays
 
 export SystemMatrix, SystemRHS, elementMatrix,
 		elementRHS, updateSystemMatrix,
@@ -12,12 +12,12 @@ export SystemMatrix, SystemRHS, elementMatrix,
 
 
 """
-	elementMatrix(T::Triangulation{N,dim,spacedim}, dofs::Int64) where {N,dim,spacedim}
+	elementMatrix(T::Triangulation{N,dim}, dofs::Int64) where {N,dim}
 Return an array of size `(N,N)` (the element matrix) each of
 whose entries is a `(dofs,dofs)` zero matrix.
 """
-function elementMatrix(T::Type{<:Triangulation{N,dim,spacedim}}, 
-	dofs::Int64) where {N,dim,spacedim}
+function elementMatrix(T::Type{<:Triangulation{N,dim}}, 
+	dofs::Int64) where {N,dim}
 	element_matrix = Array{Array{Float64}, 2}(undef, N, N)
 	for i in 1:N
 		for j in 1:N
@@ -33,8 +33,8 @@ end
 Return an array of size `(N,)` each of whose entries is 
 a zero vector of length `dofs`.
 """
-function elementRHS(T::Type{<:Triangulation{N,dim,spacedim}}, 
-	dofs::Int64) where {N,dim,spacedim}
+function elementRHS(T::Type{<:Triangulation{N,dim}}, 
+	dofs::Int64) where {N,dim}
 	element_rhs = Array{Array{Float64}, 1}(undef, N)
 	for i in 1:N
 		element_rhs[i] = zeros(dofs)
@@ -98,7 +98,7 @@ end
 """
 	updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2}, 
-	triangulation::Triangulation)
+	nodes::Array{Int64, 1})
 Update the `system_matrix` with the corresponding entries from 
 the `element_matrix`. Use `triangulation` to get the global
 node numbers. Use `system_matrix.dofs` to get the number of
@@ -107,11 +107,11 @@ dof number.
 """
 function updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2},
-	triangulation::Triangulation{N,dim,spacedim}) where {N,dim,spacedim}
-	for I in 1:N
-		node_I = triangulation.nodes[I]
-		for J in 1:N
-			node_J = triangulation.nodes[J]
+	nodes::Array{Int64, 1})
+	for I in 1:length(N)
+		node_I = nodes[I]
+		for J in 1:length(N)
+			node_J = nodes[J]
 			counter = 1
 			for i in 1:system_matrix.dofs
 				global_i = (node_I - 1)*system_matrix.dofs + i
@@ -140,9 +140,9 @@ freedom per node in order to compute the global dof number.
 """
 function updateSystemRHS(system_rhs::SystemRHS,
 	element_rhs::Array{Array{Float64}, 1},
-	triangulation::Triangulation{N,dim,spacedim}) where {N,dim,spacedim}
+	nodes::Array{Int64, 1})
 	for I in 1:N
-		node_I = triangulation.nodes[I]
+		node_I = nodes[I]
 		for i in 1:system_rhs.dofs
 			global_i = (node_I - 1)*system_rhs.dofs + i
 

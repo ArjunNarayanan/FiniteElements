@@ -22,10 +22,10 @@ end
 	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
 Reinitialize the map on the given element using the master element.
 """
-function reinit(mapping::Map{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
+function reinit(mapping::Map,
+	nodal_coordinates::Array{Float64, 2})
 	for arg in mapping.args
-		eval(arg)(mapping, mapping.master, element)
+		eval(arg)(mapping, mapping.master, nodal_coordinates)
 	end
 end
 

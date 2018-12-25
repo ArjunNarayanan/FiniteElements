@@ -12,8 +12,8 @@ export Map, getindex, coordinates, derivatives
 
 """
 	coordinates(data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
-Allocate static arrays to store the spatial coordinates of `nq`
-quadrature points given a specific instance of `Triangulation`.
+Allocate arrays to store the spatial coordinates of `nq`
+quadrature points in `spacedim` dimensional space.
 """
 function coordinates(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64)
@@ -46,8 +46,8 @@ entries of `data[:jacobian]`
 """
 function derivatives(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64)
-	data[:jacobian] = [zeros(dim, spacedim) for i in 1:nq]
-	data[:inverse_jacobian] = [zeros(spacedim, dim) for i in 1:nq]
+	data[:jacobian] = [zeros(spacedim, dim) for i in 1:nq]
+	data[:inverse_jacobian] = [zeros(dim, spacedim) for i in 1:nq]
 	data[:determinant] = zeros(nq)
 end
 
@@ -89,11 +89,11 @@ end
 Compute the physical coordinates of each `master.quadrature.points` on the given `element`.
 Store the result in `mapping.data[:coordinates]`
 """
-function coordinates(mapping::Map{T}, master::Master{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
+function coordinates(mapping::Map{T,dim,spacedim}, master::Master{T},
+	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
 	for q in 1:length(master.quadrature.points)
 		for i in 1:spacedim
-			mapping.data[:coordinates][q][i] = sum([master[0][I,q]*element.points[I][i] for I in 1:length(master.basis.functions)])
+			mapping.data[:coordinates][q][i] = sum([master[0][I,q]*nodal_coordinates[I,i] for I in 1:length(master.basis.functions)])
 		end
 	end
 end
@@ -101,13 +101,13 @@ end
 
 """
 	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
-	J::Float64, T::Type{<:Triangulation{N, 2, 2}}) where N
+	J::Float64, T::Type{<:Map{T, 2, 2}}) where T
 Invert `A` and store it in `B`. The method is specialized by the `dim` and `spacedim`
-parameters of `Triangulation`.
+parameters of `Map`.
 """
 function invert(A::Array{Float64, 2}, 
 	B::Array{Float64, 2}, J::Float64,
-	 T::Type{<:Triangulation{N, 2, 2}}) where N
+	 ::Type{<:Map{T, 2, 2}}) where T
 	B[1,1] =  1.0/J*A[2,2]
 	B[1,2] = -1.0/J*A[1,2]
 	B[2,1] = -1.0/J*A[2,1]
@@ -115,18 +115,18 @@ function invert(A::Array{Float64, 2},
 end
 
 """
-	determinant(A::Array{Float64, 2}, T::Type{<:Triangulation{N,2,2}}) where N
+	determinant(A::Array{Float64, 2}, T::Type{<:Map{N,2,2}}) where N
 Return the determinant of `A`. The method is specialized by the `dim` and `spacedim`
-parameters of `Triangulation`.
+parameters of `Map`.
 """
-function determinant(A::Array{Float64, 2}, T::Type{<:Triangulation{N,2,2}}) where N
+function determinant(A::Array{Float64, 2}, ::Type{<:Map{T,2,2}}) where T
 	return A[1,1]*A[2,2] - A[1,2]*A[2,1]
 end
 
 
 """
 	derivatives(mapping::Map{T}, master::Master{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
+	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
 At each `master.quadrature.points`
 - Compute the jacobian transformation from `master` to `element`. Store the result in `mapping.data[:jacobian]`.
 - Compute the inverse of the jacobian transformation by calling `invert`.
@@ -134,18 +134,14 @@ Store the result in `mapping.data[:inverse_jacobian]`.
 - Compute the determinant of the jacobian transformation by calling `determinant`.
 Store the result in `mapping.data[:determinant]`.
 """
-function derivatives(mapping::Map{T}, master::Master{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
+function derivatives(mapping::Map{T,dim,spacedim}, master::Master{T},
+	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
 	for q in 1:length(master.quadrature.points)
-		for j in 1:spacedim
-			for i in 1:dim
-				mapping.data[:jacobian][q][i,j] = sum([master[1][I,q][i]*element.points[I][j] for I in 1:length(master.basis.functions)])
-			end
-		end
-		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(element))
+		mapping.data[:jacobian][q] = sum([nodal_coordinates[I,:]*master[1][I,q]' for I in 1:length(master.basis.functions)])
+		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(mapping))
 		invert(mapping.data[:jacobian][q], 
 			mapping.data[:inverse_jacobian][q], 
-			mapping.data[:determinant][q], typeof(element))
+			mapping.data[:determinant][q], typeof(mapping))
 	end
 end
 
