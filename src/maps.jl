@@ -2,11 +2,7 @@ module maps
 
 import Base: getindex
 
-# We use StaticArrays to store mapping data 
-# at the quadrature points. This allows to deploy
-# specialized methods for inversion etc. based on 
-# dimensions
-using StaticArrays
+
 
 using geometry, quadrature, master
 
@@ -15,13 +11,13 @@ export Map, getindex, coordinates, derivatives
 
 
 """
-	coordinates(arg::Symbol, data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
+	coordinates(data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
 Allocate static arrays to store the spatial coordinates of `nq`
 quadrature points given a specific instance of `Triangulation`.
 """
 function coordinates(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64)
-	data[:coordinates] = [ @MVector zeros(spacedim) for i in 1:nq]
+	data[:coordinates] = [zeros(spacedim) for i in 1:nq]
 end
 
 
@@ -50,8 +46,8 @@ entries of `data[:jacobian]`
 """
 function derivatives(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64)
-	data[:jacobian] = [@MMatrix zeros(dim, spacedim) for i in 1:nq]
-	data[:inverse_jacobian] = [@MMatrix zeros(spacedim, dim) for i in 1:nq]
+	data[:jacobian] = [zeros(dim, spacedim) for i in 1:nq]
+	data[:inverse_jacobian] = [zeros(spacedim, dim) for i in 1:nq]
 	data[:determinant] = zeros(nq)
 end
 
@@ -104,11 +100,14 @@ end
 
 
 """
-	invert(A::MArray{Tuple{2,2}}, B::MArray{Tuple{2,2}}, J::Float64)
-Invert `A` and store it in `B`.
+	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
+	J::Float64, T::Type{<:Triangulation{N, 2, 2}}) where N
+Invert `A` and store it in `B`. The method is specialized by the `dim` and `spacedim`
+parameters of `Triangulation`.
 """
-function invert(A::MArray{Tuple{2,2}}, 
-	B::MArray{Tuple{2,2}}, J::Float64)
+function invert(A::Array{Float64, 2}, 
+	B::Array{Float64, 2}, J::Float64,
+	 T::Type{<:Triangulation{N, 2, 2}}) where N
 	B[1,1] =  1.0/J*A[2,2]
 	B[1,2] = -1.0/J*A[1,2]
 	B[2,1] = -1.0/J*A[2,1]
@@ -116,10 +115,11 @@ function invert(A::MArray{Tuple{2,2}},
 end
 
 """
-	determinant(A::MArray{Tuple{2,2}})
-Return the determinant of `A`.
+	determinant(A::Array{Float64, 2}, T::Type{<:Triangulation{N,2,2}}) where N
+Return the determinant of `A`. The method is specialized by the `dim` and `spacedim`
+parameters of `Triangulation`.
 """
-function determinant(A::MArray{Tuple{2,2}})
+function determinant(A::Array{Float64, 2}, T::Type{<:Triangulation{N,2,2}}) where N
 	return A[1,1]*A[2,2] - A[1,2]*A[2,1]
 end
 
@@ -142,8 +142,10 @@ function derivatives(mapping::Map{T}, master::Master{T},
 				mapping.data[:jacobian][q][i,j] = sum([master[1][I,q][i]*element.points[I][j] for I in 1:length(master.basis.functions)])
 			end
 		end
-		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q])
-		invert(mapping.data[:jacobian][q], mapping.data[:inverse_jacobian][q], mapping.data[:determinant][q])
+		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(element))
+		invert(mapping.data[:jacobian][q], 
+			mapping.data[:inverse_jacobian][q], 
+			mapping.data[:determinant][q], typeof(element))
 	end
 end
 

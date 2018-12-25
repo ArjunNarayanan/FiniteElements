@@ -1,10 +1,10 @@
 module assembly
 
-using geometry, StaticArrays
+using geometry, StaticArrays, SparseArrays
 
 export SystemMatrix, SystemRHS, elementMatrix,
 		elementRHS, updateSystemMatrix,
-		updateSystemRHS
+		updateSystemRHS, GlobalSystem
 
 
 
@@ -107,7 +107,7 @@ dof number.
 """
 function updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2},
-	triangulation::Type{<:Triangulation{N,dim,spacedim}}) where {N,dim,spacedim}
+	triangulation::Triangulation{N,dim,spacedim}) where {N,dim,spacedim}
 	for I in 1:N
 		node_I = triangulation.nodes[I]
 		for J in 1:N
@@ -140,7 +140,7 @@ freedom per node in order to compute the global dof number.
 """
 function updateSystemRHS(system_rhs::SystemRHS,
 	element_rhs::Array{Array{Float64}, 1},
-	triangulation::Type{<:Triangulation{N,dim,spacedim}}) where {N,dim,spacedim}
+	triangulation::Triangulation{N,dim,spacedim}) where {N,dim,spacedim}
 	for I in 1:N
 		node_I = triangulation.nodes[I]
 		for i in 1:system_rhs.dofs
@@ -153,6 +153,29 @@ function updateSystemRHS(system_rhs::SystemRHS,
 		end
 	end
 end
+
+
+"""
+	GlobalSystem
+Stores the global sparse matrix `K`, the global sparse vector 
+of the right hand side `F`, and the global solution vector `D`.
+# Attributes
+	K::SparseMatrixCSC{Float64, Int64}
+	D::Array{Float64, 1}
+	F::SparseVector{Float64, Int64}
+"""
+struct GlobalSystem
+	K::SparseMatrixCSC{Float64, Int64}
+	D::Array{Float64, 1}
+	F::SparseVector{Float64, Int64}
+	function GlobalSystem(system_matrix::SystemMatrix, 
+		system_rhs::SystemRHS)
+		K = sparse(system_matrix.I, system_matrix.J, system_matrix.vals)
+		F = sparsevec(system_rhs.I, system_rhs.vals)
+		D = zeros(F.n)
+		new(K, D, F)
+	end
+end	
 
 
 
