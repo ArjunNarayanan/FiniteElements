@@ -15,7 +15,7 @@ t1 = Triangle{3}((1,2,3), (p1,p2,p3))
 
 mapping = Map(master, 2, :coordinates, :derivatives)
 
-maps.reinit(mapping, t1)
+reinit(mapping, t1)
 
 exp_coords = [7/3, 7/3]
 exp_jac = [3.0 1.0
@@ -44,7 +44,7 @@ mapping = Map(master, 2, :coordinates, :derivatives)
 
 exp_coords = [[]]
 
-maps.reinit(mapping, q1)
+reinit(mapping, q1)
 
 @test length(mapping[:coordinates]) == 4
 @test length(mapping[:jacobian]) == 4

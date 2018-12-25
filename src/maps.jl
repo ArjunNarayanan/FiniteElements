@@ -10,7 +10,7 @@ using StaticArrays
 
 using geometry, quadrature, master
 
-export Map, reinit, getindex
+export Map, getindex, coordinates, derivatives
 
 
 
@@ -148,17 +148,7 @@ function derivatives(mapping::Map{T}, master::Master{T},
 end
 
 
-"""
-	reinit(mapping::Map{T}, master::Master{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
-Reinitialize the map on the given element using the master element.
-"""
-function reinit(mapping::Map{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
-	for arg in mapping.args
-		eval(arg)(mapping, mapping.master, element)
-	end
-end
+
 
 
 

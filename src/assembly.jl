@@ -3,7 +3,7 @@ module assembly
 using geometry, StaticArrays
 
 export SystemMatrix, SystemRHS, elementMatrix,
-		elementRHS, reinit, updateSystemMatrix,
+		elementRHS, updateSystemMatrix,
 		updateSystemRHS
 
 
@@ -43,15 +43,7 @@ function elementRHS(T::Type{<:Triangulation{N,dim,spacedim}},
 end
 
 
-"""
-	reinit(my_array::Array{Array{Float64}, 2})
-Reinitialize all entries to zero.
-"""
-function reinit(my_array::Array{Array{Float64}})
-	for i in 1:length(my_array)
-		fill!(my_array[i], 0.0)
-	end
-end
+
 
 
 

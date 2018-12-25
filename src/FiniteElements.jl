@@ -6,5 +6,6 @@ using Reexport
 @reexport using master
 @reexport using maps
 @reexport using assembly
+@reexport using reinitialize
 
 end
