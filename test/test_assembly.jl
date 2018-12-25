@@ -47,21 +47,21 @@ end
 reinit(element_matrix)
 reinit(element_rhs)
 
-master_elmt = Master(T, 2, 0, 1)
-mapping = Map(master_elmt, 2, :coordinates, :derivatives)
+
+mapping = Map{Triangle{3},2,2}(2, :coordinates, :gradients)
 reinit(mapping, t1)
 
 system_matrix = SystemMatrix(dofs)
 system_rhs = SystemRHS(dofs)
 KIJ = zeros(2,2)
 
-for q in eachindex(master_elmt.quadrature.points)
-	pq = master_elmt.quadrature.points[q]
-	wq = master_elmt.quadrature.weights[q]
+for q in eachindex(mapping.master.quadrature.points)
+	pq = mapping.master.quadrature.points[q]
+	wq = mapping.master.quadrature.weights[q]
 	for I in 1:size(t1)[1]
-		∇ϕI = mapping[:inverse_jacobian][q]'*master_elmt[1][I,q]
+		∇ϕI = mapping[:inverse_jacobian][q]'*mapping.master[:gradients][I,q]
 		for J in 1:size(t1)[1]
-			∇ϕJ = mapping[:inverse_jacobian][q]'*master_elmt[1][J,q]
+			∇ϕJ = mapping[:inverse_jacobian][q]'*mapping.master[:gradients][J,q]
 
 			fill!(KIJ, 0.0)
 			
@@ -97,14 +97,15 @@ end
 
 ##################################################
 # Test assembly for Quadrilateral{4}
-master_elmt = Master(Quadrilateral{4}, 2, 0, 1)
-mapping = Map(master_elmt, 2, :coordinates, :derivatives)
+T = Quadrilateral{4}
+
+mapping = Map{T,2,2}(2, :coordinates, :gradients)
 
 q1 = [2. 2
 	  6 2
 	  6 10
       3 8]
-T = Quadrilateral{4}
+
 
 element_matrix = elementMatrix(T, dofs)
 element_rhs = elementRHS(T, dofs)
@@ -123,13 +124,13 @@ system_matrix = SystemMatrix(dofs)
 system_rhs = SystemRHS(dofs)
 KIJ = zeros(2,2)
 
-for q in eachindex(master_elmt.quadrature.points)
-	pq = master_elmt.quadrature.points[q]
-	wq = master_elmt.quadrature.weights[q]
+for q in eachindex(mapping.master.quadrature.points)
+	pq = mapping.master.quadrature.points[q]
+	wq = mapping.master.quadrature.weights[q]
 	for I in 1:size(q1)[1]
-		∇ϕI = mapping[:inverse_jacobian][q]'*master_elmt[1][I,q]
+		∇ϕI = mapping[:inverse_jacobian][q]'*mapping.master[:gradients][I,q]
 		for J in 1:size(q1)[1]
-			∇ϕJ = mapping[:inverse_jacobian][q]'*master_elmt[1][J,q]
+			∇ϕJ = mapping[:inverse_jacobian][q]'*mapping.master[:gradients][J,q]
 
 			fill!(KIJ, 0.0)
 			

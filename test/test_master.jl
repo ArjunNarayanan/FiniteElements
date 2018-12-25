@@ -6,11 +6,11 @@ using geometry, master, LinearAlgebra
 tol = 1e-10
 
 function TestTriangulation(T,n,p)
-	master = Master(T{n}, p, 0)
+	master = Master(T{n}, p, :values)
 	l = length(master.basis.functions)
 	b = master.basis.functions
 	q = master.quadrature.points
-	vals = master[0]
+	vals = master[:values]
 	@test norm([vals[i,j] - b[i](q[j]) for i in 1:l, j in 1:p]) < tol
 end
 

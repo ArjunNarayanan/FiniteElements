@@ -5,15 +5,14 @@ tol = 1e-10
 
 
 ##################################################
-# Test mapping on Triangle{1} with 1-point rule
-master_elmt = Master(Triangle{3}, 1, 0, 1)
+# Test mapping on Triangle{3} with 3-point rule
 
 t1 = [1.0 1.0
  	  4.0 2.0
 	  2.0 4.0]
 
 
-mapping = Map(master_elmt, 2, :coordinates, :derivatives)
+mapping = Map{Triangle{3}, 2, 2}(1, :coordinates, :gradients)
 
 reinit(mapping, t1)
 
@@ -32,7 +31,7 @@ exp_jac = [3.0 1.0
 
 ##################################################
 # Test mapping on Quadrilateral{1} with 3 point rule
-master_elmt = Master(Quadrilateral{4}, 2, 0, 1)
+master_elmt = Master(Quadrilateral{4}, 2, :values, :gradients)
 
 q1 = [2.0 2.0
 	  6.0 2.0
@@ -40,7 +39,7 @@ q1 = [2.0 2.0
 	  3.0 8.0]
 
 
-mapping = Map(master_elmt, 2, :coordinates, :derivatives)
+mapping = Map{Quadrilateral{4},2,2}(2, :coordinates, :gradients)
 
 exp_coords = [[]]
 
@@ -49,12 +48,12 @@ reinit(mapping, q1)
 @test length(mapping[:coordinates]) == 4
 @test length(mapping[:jacobian]) == 4
 
-p = [sum([master_elmt[0][i,j]*q1[i,:] for i = 1:4]) for j in 1:4]
+p = [sum([master_elmt[:values][i,j]*q1[i,:] for i = 1:4]) for j in 1:4]
 
 @test norm([norm([p[j][i] - mapping[:coordinates][j][i] for i in 1:2]) for j in 1:4]) < tol
 
-dxdξ = [sum([ master_elmt[1][i,j][1]*q1[i,:] for i in 1:4]) for j in 1:4]
-dxdη = [sum([ master_elmt[1][i,j][2]*q1[i,:] for i in 1:4]) for j in 1:4]
+dxdξ = [sum([ master_elmt[:gradients][i,j][1]*q1[i,:] for i in 1:4]) for j in 1:4]
+dxdη = [sum([ master_elmt[:gradients][i,j][2]*q1[i,:] for i in 1:4]) for j in 1:4]
 
 for i in 1:4
 	@test abs(dxdξ[i][1] - mapping[:jacobian][i][1,1]) < tol

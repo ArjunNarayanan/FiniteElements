@@ -6,7 +6,7 @@ import Base: getindex
 
 using geometry, quadrature, master
 
-export Map, getindex, coordinates, derivatives
+export Map, getindex, coordinates, gradients
 
 
 
@@ -23,7 +23,7 @@ end
 
 
 """
-	derivatives(arg::Symbol, data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
+	gradients(arg::Symbol, data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
 Allocate static arrays to store the jacobian mapping, the inverse jacobian,
 and the determinant of the jacobian.
 After this call, `data` is modified as:
@@ -44,14 +44,27 @@ This represents the following matrix
 - `data[:determinant] - `nq` zeros representing the determinant of the corresponding
 entries of `data[:jacobian]`
 """
-function derivatives(data::Dict, nq::Int64, dim::Int64,
+function gradients(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64)
 	data[:jacobian] = [zeros(spacedim, dim) for i in 1:nq]
 	data[:inverse_jacobian] = [zeros(dim, spacedim) for i in 1:nq]
 	data[:determinant] = zeros(nq)
 end
 
-
+"""
+	mapArgsToMasterArgs(args::Vararg{Symbol})
+Convert the tuple of `args` supplied to `Map` into the corresponding
+arguments required by the constructor of `Master`.
+The arguments are mapped as:
+- `:coordinates` -> `:values` since we need basis function values to map coordinates.
+- `:gradients` -> `:gradients`
+"""
+function mapArgsToMasterArgs(args::Vararg{Symbol})
+	masterArgsDict = Dict(:coordinates => :values,
+						:gradients => :gradients)
+	masterArgs = tuple([masterArgsDict[arg] for arg in args]...)
+	return masterArgs
+end
 
 
 """
@@ -64,36 +77,39 @@ Currently supported keys
 - `:coordinates` allocate memory to store the spatial coordinates of 
 quadrature points.
 - `:derivatives` allocate memory to map derivatives of basis 
-functions of quadrature points from the master element to the 
+functions of quadrature points from the master_elmt element to the 
 spatial element.
 """
 struct Map{Triangulation, dim, spacedim}
 	master::Master{T} where T
 	data::Dict{Symbol, Array}
 	args::NTuple{N, Symbol} where N
-	function Map(master::Master{T}, spacedim::Int64,
-				args::Vararg{Symbol}) where {T <: Triangulation{P,dim}}  where {P,dim}
+	function Map{T,dim,spacedim}(quad_order::Int64, 
+				args::Vararg{Symbol}) where {T <: Triangulation, dim, spacedim}
+		master_args = mapArgsToMasterArgs(args...)
+		master_elmt = Master(T, quad_order, master_args...)
+		
 		data = Dict{Symbol, Array}()
-		nq = length(master.quadrature.points)
+		nq = length(master_elmt.quadrature.points)
 		for arg in args
 			eval(arg)(data, nq, dim, spacedim)
 		end
-		new{T,dim,spacedim}(master, data, args)
+		new{T,dim,spacedim}(master_elmt, data, args)
 	end
 end
 
 
 """
-	coordinates(mapping::Map{T}, master::Master{T},
+	coordinates(mapping::Map{T}, master_elmt::Master{T},
 	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
-Compute the physical coordinates of each `master.quadrature.points` on the given `element`.
+Compute the physical coordinates of each `master_elmt.quadrature.points` on the given `element`.
 Store the result in `mapping.data[:coordinates]`
 """
-function coordinates(mapping::Map{T,dim,spacedim}, master::Master{T},
+function coordinates(mapping::Map{T,dim,spacedim}, master_elmt::Master{T},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
-	for q in 1:length(master.quadrature.points)
+	for q in 1:length(master_elmt.quadrature.points)
 		for i in 1:spacedim
-			mapping.data[:coordinates][q][i] = sum([master[0][I,q]*nodal_coordinates[I,i] for I in 1:length(master.basis.functions)])
+			mapping.data[:coordinates][q][i] = sum([master_elmt[:values][I,q]*nodal_coordinates[I,i] for I in 1:length(master_elmt.basis.functions)])
 		end
 	end
 end
@@ -125,19 +141,19 @@ end
 
 
 """
-	derivatives(mapping::Map{T}, master::Master{T},
+	gradients(mapping::Map{T}, master_elmt::Master{T},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
-At each `master.quadrature.points`
-- Compute the jacobian transformation from `master` to `element`. Store the result in `mapping.data[:jacobian]`.
+At each `master_elmt.quadrature.points`
+- Compute the jacobian transformation from `master_elmt` to `element`. Store the result in `mapping.data[:jacobian]`.
 - Compute the inverse of the jacobian transformation by calling `invert`.
 Store the result in `mapping.data[:inverse_jacobian]`.
 - Compute the determinant of the jacobian transformation by calling `determinant`.
 Store the result in `mapping.data[:determinant]`.
 """
-function derivatives(mapping::Map{T,dim,spacedim}, master::Master{T},
+function gradients(mapping::Map{T,dim,spacedim}, master_elmt::Master{T},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
-	for q in 1:length(master.quadrature.points)
-		mapping.data[:jacobian][q] = sum([nodal_coordinates[I,:]*master[1][I,q]' for I in 1:length(master.basis.functions)])
+	for q in 1:length(master_elmt.quadrature.points)
+		mapping.data[:jacobian][q] = sum([nodal_coordinates[I,:]*master_elmt[:gradients][I,q]' for I in 1:length(master_elmt.basis.functions)])
 		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(mapping))
 		invert(mapping.data[:jacobian][q], 
 			mapping.data[:inverse_jacobian][q], 
