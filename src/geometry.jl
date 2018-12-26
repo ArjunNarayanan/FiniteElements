@@ -93,7 +93,9 @@ struct Mesh{spacedim}
 
 		for key in keys(mesh_data[:cells])
 			eType = elementTypes[key]
-			data[:cells][eType] = mesh_data[:cells][key]
+			# Shift the node ids by 1 because gmsh uses zero based
+			# indexing
+			data[:cells][eType] = mesh_data[:cells][key] .+ 1
 		end
 
 		tagToName = Dict{Int64, String}()

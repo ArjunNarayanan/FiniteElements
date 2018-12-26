@@ -174,7 +174,9 @@ struct Master{T <: Triangulation}
 		data = Dict{Symbol, Array}()
 
 		for arg in args
-			data[arg] = eval(arg)(basis, quadrature)
+			if eval(arg) != nothing
+				data[arg] = eval(arg)(basis, quadrature)
+			end
 		end
 
 		new{T}(basis, quadrature, data)

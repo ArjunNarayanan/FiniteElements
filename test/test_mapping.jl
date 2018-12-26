@@ -12,7 +12,7 @@ t1 = [1.0 1.0
 	  2.0 4.0]
 
 
-mapping = Map{Triangle{3}, 2, 2}(1, :coordinates, :gradients)
+mapping = Map{Triangle{3}, 2}(1, :coordinates, :gradients)
 
 reinit(mapping, t1)
 
@@ -39,7 +39,7 @@ q1 = [2.0 2.0
 	  3.0 8.0]
 
 
-mapping = Map{Quadrilateral{4},2,2}(2, :coordinates, :gradients)
+mapping = Map{Quadrilateral{4},2}(2, :coordinates, :gradients)
 
 exp_coords = [[]]
 

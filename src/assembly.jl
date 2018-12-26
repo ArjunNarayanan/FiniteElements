@@ -2,9 +2,7 @@ module assembly
 
 using geometry, SparseArrays
 
-export SystemMatrix, SystemRHS, elementMatrix,
-		elementRHS, updateSystemMatrix,
-		updateSystemRHS, GlobalSystem
+export Assembler, updateSystem, GlobalSystem
 
 
 
@@ -55,19 +53,16 @@ matrix for the given system of equations.
 - `I::Array{Int64, 1}` row index
 - `J::Array{Int64, 1}` column index
 - `vals::Array{Float64, 1}` corresponding values
-- `dofs::Int64` number of degrees of freedom (dof) per node. 
-Used to obtain the global dof number from the local dof number.
 """
 struct SystemMatrix
 	I::Array{Int64, 1}
 	J::Array{Int64, 1}
 	vals::Array{Float64, 1}
-	dofs::Int64
-	function SystemMatrix(dofs::Int64)
+	function SystemMatrix()
 		I = Array{Int64, 1}()
 		J = Array{Int64, 1}()
 		vals = Array{Float64, 1}()
-		new(I, J, vals, dofs)
+		new(I, J, vals)
 	end
 end
 
@@ -78,18 +73,15 @@ Struct to store the information necessary to construct a sparse
 vector for the right hand side.
 # Fields
 - `I::Array{Int64, 1}` row index
-- `vals::Array{Float64, 1}` corresponding values
-- `dofs::Int64` number of degrees of freedom (dof) per node. 
-Used to obtain the global dof number from the local dof number.
+- `vals::Array{Float64, 1}` corresponding values.
 """
 struct SystemRHS
 	I::Array{Int64, 1}
 	vals::Array{Float64, 1}
-	dofs::Int64
-	function SystemRHS(dofs::Int64)
+	function SystemRHS()
 		I = Array{Int64, 1}()
 		vals = Array{Float64, 1}()
-		new(I, vals, dofs)
+		new(I, vals)
 	end
 end
 
@@ -107,16 +99,16 @@ dof number.
 """
 function updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2},
-	nodes::Array{Int64, 1})
-	for I in 1:length(N)
+	nodes::Array{Int64, 1}, ndofs::Int64)
+	for I in 1:length(nodes)
 		node_I = nodes[I]
-		for J in 1:length(N)
+		for J in 1:length(nodes)
 			node_J = nodes[J]
 			counter = 1
-			for i in 1:system_matrix.dofs
-				global_i = (node_I - 1)*system_matrix.dofs + i
-				for j in 1:system_matrix.dofs
-					global_j = (node_J - 1)*system_matrix.dofs + j
+			for i in 1:ndofs
+				global_i = (node_I - 1)*ndofs + i
+				for j in 1:ndofs
+					global_j = (node_J - 1)*ndofs + j
 					value = element_matrix[I,J][counter]
 					counter += 1
 
@@ -132,7 +124,7 @@ end
 """
 	updateSystemRHS(system_rhs::SystemRHS,
 	element_rhs::Array{Array{Float64}, 1},
-	triangulation::Type{<:Triangulation{N,dim,spacedim}}) where {N,dim,spacedim}
+	nodes::Array{Int64, 1})
 Update the `system_rhs` with the corresponding entries from 
 `element_rhs`. Use `triangulation` to get the global node 
 numbers. Use `system_rhs.dofs` to get the number of degrees of 
@@ -140,11 +132,11 @@ freedom per node in order to compute the global dof number.
 """
 function updateSystemRHS(system_rhs::SystemRHS,
 	element_rhs::Array{Array{Float64}, 1},
-	nodes::Array{Int64, 1})
-	for I in 1:N
+	nodes::Array{Int64, 1}, ndofs::Int64)
+	for I in 1:length(nodes)
 		node_I = nodes[I]
-		for i in 1:system_rhs.dofs
-			global_i = (node_I - 1)*system_rhs.dofs + i
+		for i in 1:ndofs
+			global_i = (node_I - 1)*ndofs + i
 
 			value = element_rhs[I][i]
 
@@ -153,6 +145,52 @@ function updateSystemRHS(system_rhs::SystemRHS,
 		end
 	end
 end
+
+
+"""
+	Assembler
+# Fields
+	system_matrix::SystemMatrix
+	system_rhs::SystemRHS
+	element_matrix::Array{Array{Float64}, 2}
+	element_rhs::Array{Array{Float64}, 1}
+	ndofs::Int64
+# Constructor
+	Assembler(T::Type{<:Triangulation}, ndofs::Int64)
+# Description
+Collects all the structures for assembling the linear system.
+"""
+struct Assembler
+	system_matrix::SystemMatrix
+	system_rhs::SystemRHS
+	element_matrix::Array{Array{Float64}, 2}
+	element_rhs::Array{Array{Float64}, 1}
+	ndofs::Int64
+	function Assembler(T::Type{<:Triangulation}, ndofs::Int64)
+		system_matrix = SystemMatrix()
+		system_rhs = SystemRHS()
+		element_matrix = elementMatrix(T, ndofs)
+		element_rhs = elementRHS(T, ndofs)
+		new(system_matrix, system_rhs, element_matrix, element_rhs, ndofs)
+	end
+end
+
+
+
+
+"""
+	updateSystem(assembler::Assembler, nodes::Array{Int64, 1})
+Calls `updateSystemMatrix` and `updateSystemRHS`.
+"""
+function updateSystem(assembler::Assembler, 
+	nodes::Array{Int64, 1})
+	updateSystemMatrix(assembler.system_matrix, 
+		assembler.element_matrix,
+		nodes, assembler.ndofs)
+	updateSystemRHS(assembler.system_rhs, assembler.element_rhs,
+		nodes, assembler.ndofs)
+end
+
 
 
 """

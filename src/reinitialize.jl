@@ -25,8 +25,17 @@ Reinitialize the map on the given element using the master element.
 function reinit(mapping::Map,
 	nodal_coordinates::Array{Float64, 2})
 	for arg in mapping.args
-		eval(arg)(mapping, mapping.master, nodal_coordinates)
+		eval(arg)(mapping, nodal_coordinates)
 	end
+end
+
+"""
+	reinit(assembler::Assembler)
+Call `reinit` on `assembler.element_matrix` and `assembler.element_rhs`.
+"""
+function reinit(assembler::Assembler)
+	reinit(assembler.element_matrix)
+	reinit(assembler.element_rhs)
 end
 
 
