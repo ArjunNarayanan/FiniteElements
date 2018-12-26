@@ -7,5 +7,7 @@ using Reexport
 @reexport using maps
 @reexport using assembly
 @reexport using reinitialize
+@reexport using boundary_conditions
+@reexport using solvers
 
 end

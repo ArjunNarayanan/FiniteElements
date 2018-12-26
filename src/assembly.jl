@@ -166,7 +166,8 @@ struct Assembler
 	element_matrix::Array{Array{Float64}, 2}
 	element_rhs::Array{Array{Float64}, 1}
 	ndofs::Int64
-	function Assembler(T::Type{<:Triangulation}, ndofs::Int64)
+	function Assembler(T::Type{<:Triangulation}, 
+						ndofs::Int64)
 		system_matrix = SystemMatrix()
 		system_rhs = SystemRHS()
 		element_matrix = elementMatrix(T, ndofs)
@@ -201,17 +202,21 @@ of the right hand side `F`, and the global solution vector `D`.
 	K::SparseMatrixCSC{Float64, Int64}
 	D::Array{Float64, 1}
 	F::SparseVector{Float64, Int64}
+	ndofs::Int64
 """
 struct GlobalSystem
 	K::SparseMatrixCSC{Float64, Int64}
 	D::Array{Float64, 1}
 	F::SparseVector{Float64, Int64}
-	function GlobalSystem(system_matrix::SystemMatrix, 
-		system_rhs::SystemRHS)
-		K = sparse(system_matrix.I, system_matrix.J, system_matrix.vals)
-		F = sparsevec(system_rhs.I, system_rhs.vals)
+	ndofs::Int64
+	function GlobalSystem(assembler::Assembler)
+		K = sparse(assembler.system_matrix.I, 
+				   assembler.system_matrix.J, 
+				   assembler.system_matrix.vals)
+		F = sparsevec(assembler.system_rhs.I, 
+					  assembler.system_rhs.vals)
 		D = zeros(F.n)
-		new(K, D, F)
+		new(K, D, F, assembler.ndofs)
 	end
 end	
 
