@@ -18,9 +18,9 @@ end
 
 
 """
-	reinit(mapping::Map{T}, master::Master{T},
-	element::Triangulation{P,dim,spacedim}) where {T <: Triangulation{P,dim}} where {P,dim,spacedim}
-Reinitialize the map on the given element using the master element.
+	reinit(mapping::Map,
+	nodal_coordinates::Array{Float64, 2})
+Reinitialize the map on the given nodal coordinates.
 """
 function reinit(mapping::Map,
 	nodal_coordinates::Array{Float64, 2})

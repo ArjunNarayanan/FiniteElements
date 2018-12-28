@@ -6,7 +6,7 @@ export solveDirect
 
 
 function solveDirect(system::GlobalSystem)
-	system.D[:] = K\Array(system.F)
+	system.D[:] = system.K\Array(system.F)
 end
 
 

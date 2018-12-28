@@ -127,7 +127,7 @@ function coordinates(mapping::Map{T,dim,spacedim},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
 	for q in 1:length(mapping.master.quadrature.points)
 		for i in 1:spacedim
-			mapping.data[:coordinates][q][i] = sum([mapping.master[:values][I,q]*nodal_coordinates[I,i] for I in 1:length(mapping.master.basis.functions)])
+			mapping.data[:coordinates][q][i] = sum([mapping.master[:values][I,q]*nodal_coordinates[i,I] for I in 1:length(mapping.master.basis.functions)])
 		end
 	end
 end
@@ -173,7 +173,7 @@ Store the result in `mapping.data[:determinant]`.
 function gradients(mapping::Map{T,dim,spacedim},
 	nodal_coordinates::Array{Float64, 2}) where {T<:Triangulation{N,dim}} where {N,dim,spacedim}
 	for q in 1:length(mapping.master.quadrature.points)
-		mapping.data[:jacobian][q] = sum([nodal_coordinates[I,:]*mapping.master[:gradients][I,q]' for I in 1:length(mapping.master.basis.functions)])
+		mapping.data[:jacobian][q] = sum([nodal_coordinates[:,I]*mapping.master[:gradients][I,q]' for I in 1:length(mapping.master.basis.functions)])
 		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(mapping))
 		invert(mapping.data[:jacobian][q], 
 			mapping.data[:inverse_jacobian][q], 

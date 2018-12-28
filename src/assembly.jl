@@ -2,7 +2,7 @@ module assembly
 
 using geometry, SparseArrays
 
-export Assembler, updateSystem, GlobalSystem
+export Assembler, updateSystem, GlobalSystem, extract
 
 
 
@@ -105,10 +105,11 @@ function updateSystemMatrix(system_matrix::SystemMatrix,
 		for J in 1:length(nodes)
 			node_J = nodes[J]
 			counter = 1
-			for i in 1:ndofs
-				global_i = (node_I - 1)*ndofs + i
-				for j in 1:ndofs
-					global_j = (node_J - 1)*ndofs + j
+			for j in 1:ndofs
+				global_j = (node_J - 1)*ndofs + j
+				for i in 1:ndofs
+					global_i = (node_I - 1)*ndofs + i
+					
 					value = element_matrix[I,J][counter]
 					counter += 1
 
@@ -218,8 +219,19 @@ struct GlobalSystem
 		D = zeros(F.n)
 		new(K, D, F, assembler.ndofs)
 	end
-end	
+end
 
+
+"""
+	extract(system::GlobalSystem, dof::Int64, node_ids::Array{Int64, 1})
+Extract the solution values from `system.D` corresponding to the `dof` degree of freedom,
+and the node numbers corresponding to `node_ids`.
+"""
+function extract(system::GlobalSystem, dof::Int64, node_ids::Array{Int64, 1})
+	indices = [((I-1)*system.ndofs + dof) for I in node_ids]
+	vals = system.D[indices]
+	return vals
+end
 
 
 

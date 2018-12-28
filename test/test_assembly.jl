@@ -2,9 +2,9 @@ using FiniteElements, Test, TensorOperations, LinearAlgebra
 
 const dofs = 2
 # Construct an arbitrary Triangle{1} object
-t1 = [1. 1
-	  4 2
-	  2 4]
+t1 = [1.0 4.0 2.0
+      1.0 2.0 4.0]
+
 T = Triangle{3}
 
 
@@ -55,9 +55,9 @@ KIJ = zeros(2,2)
 
 for q in eachindex(mapping.master.quadrature.points)
 	(pq, wq) = mapping.master.quadrature[q]
-	for I in 1:size(t1)[1]
+	for I in 1:size(t1)[2]
 		∇ϕI = mapping[:gradients][I,q]
-		for J in 1:size(t1)[1]
+		for J in 1:size(t1)[2]
 			∇ϕJ = mapping[:gradients][J,q]
 
 			fill!(KIJ, 0.0)
@@ -100,10 +100,8 @@ T = Quadrilateral{4}
 
 mapping = Map{T,2}(2, :coordinates, :gradients)
 
-q1 = [2. 2
-	  6 2
-	  6 10
-      3 8]
+q1 = [2.0   6.0   6.0   3.0
+      2.0   2.0   10.0  8.0]
 
 
 assembler = Assembler(T, dofs)
@@ -119,9 +117,9 @@ KIJ = zeros(2,2)
 
 for q in eachindex(mapping.master.quadrature.points)
 	(pq, wq) = mapping.master.quadrature[q]
-	for I in 1:size(q1)[1]
+	for I in 1:size(q1)[2]
 		∇ϕI = mapping[:gradients][I,q]
-		for J in 1:size(q1)[1]
+		for J in 1:size(q1)[2]
 			∇ϕJ = mapping[:gradients][J,q]
 
 			fill!(KIJ, 0.0)

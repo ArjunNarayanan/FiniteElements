@@ -66,59 +66,27 @@ A mesh object in `spacedim` dimensional space.
 # Attributes
 - `data` : Dictionary with the following keys.
 
-- `:nodes` : An array of size `(number_of_nodes, spacedim)` giving the 
+- `:nodes` : An array of size `(spacedim, number_of_nodes)` giving the 
 corresponding nodal coordinates.
-- `:cells` : A dictionary whose keys are `T::Type{<:Triangulation{N,dim}}`. 
+- `:elements` : A dictionary whose keys are `T::Type{<:Triangulation{N,dim}}`. 
 Querying with the element type gives an array of size 
-`(number_of_elements_of_type, number_of_nodes_in_type)`. This is the connectivity
-matrix.
-- `:groups` : A dictionary whose keys are strings `physical_name` representing 
-the names of physical groups in the mesh. Querying this dictionary with the 
-corresponding name gives an Array of tuples `(element_type, index)`.
+`(number_of_nodes_in_type, number_of_elements_of_type)`. This is the connectivity
+matrix for this element type.
+- `:node_groups` : A dictionary whose keys are strings `group_name` representing 
+the names of node groups in the mesh. Querying this dictionary with the 
+corresponding name gives an `Array{Int, 1}` with the node numbers of the nodes in 
+this group.
+- `:element_groups` : A dictionary whose keys are strings `group_name` representing
+the names of element groups in the mesh. Querying this dictionary with the corresponding
+name gives an `Array{Int, 1}` with the element numbers of the elements in this group.
 
 # Constructor
-	function Mesh{spacedim}(mesh_data)
-Construct a `Mesh{spacedim}` object from `mesh_data` (construct this
-using the python `meshio` module).
+	Mesh{spacedim}(data::Dict{Symbol, Any}) where spacedim
+Store the contents of `data` in a `Mesh{spacedim}` object.
 """
 struct Mesh{spacedim}
 	data::Dict{Symbol, Any}
-	function Mesh{spacedim}(mesh_data) where spacedim
-
-		data = Dict()
-
-		data[:points] = mesh_data[:points][:,1:spacedim]
-
-		data[:cells] = Dict{DataType, Array{Int64, 2}}()
-
-		for key in keys(mesh_data[:cells])
-			eType = elementTypes[key]
-			# Shift the node ids by 1 because gmsh uses zero based
-			# indexing
-			data[:cells][eType] = mesh_data[:cells][key] .+ 1
-		end
-
-		tagToName = Dict{Int64, String}()
-
-		data[:groups] = Dict{String, Array{Tuple{DataType, Int64}}}()
-
-		for name in keys(mesh_data[:field_data])
-			tag = mesh_data[:field_data][name][1]
-			tagToName[tag] = name
-			data[:groups][name] = Array{Tuple{DataType, Int64}, 1}()
-		end
-
-
-		for key in keys(mesh_data[:cell_data])
-			eType = elementTypes[key]
-			tags = mesh_data[:cell_data][key]["gmsh:physical"]
-			for i in eachindex(tags)
-				tag = tags[i]
-				name = tagToName[tag]
-				push!(data[:groups][name], (eType, i))
-			end
-		end
-
+	function Mesh{spacedim}(data::Dict{Symbol, Any}) where spacedim
 		new{spacedim}(data)
 	end
 end
