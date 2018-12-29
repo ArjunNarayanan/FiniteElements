@@ -1,11 +1,46 @@
 module quadrature
-using geometry
+using geometry, basis, ForwardDiff, LinearAlgebra
 
 # Import base operators to be overloaded
 import Base: *, getindex, eachindex
 
 export Quadrature, Integrate
 
+
+
+"""
+	domain(T::Type{<:Line})
+returns the points whose convex combination determines the domain of
+integration for a `T` type triangulation.
+	return [-1.0 1.0]
+"""
+function domain(T::Type{<:Line})
+	return [-1.0 1.0]
+end
+
+"""
+	domain(T::Type{<:Triangle})
+returns the points whose convex combination determines the domain of
+integration for a `T` type triangulation.
+	return [0.0   1.0    0.0
+	        0.0   0.0    1.0]
+"""
+function domain(T::Type{<:Triangle})
+	return [0.0   1.0    0.0
+	        0.0   0.0    1.0]
+end
+
+"""
+	domain(T::Type{<:Quadrilateral})
+returns the points whose convex combination determines the domain of
+integration for a `T` type triangulation.
+	return [-1.0    1.0    1.0     -1.0
+		    -1.0   -1.0    1.0      1.0]
+"""
+function domain(T::Type{<:Quadrilateral})
+	return [-1.0    1.0    1.0     -1.0
+		    -1.0   -1.0    1.0      1.0]
+end
 
 
 """
@@ -97,6 +132,35 @@ struct Quadrature{Triangulation, order}
 		else
 			error("The requested quadrature order has not been implemented")
 		end
+	end
+"""
+	Quadrature(::Type{<:Triangle{3}}, dim::Int64, order::Int64)
+construct a quadrature of `dim = 1 < 2`. Quadrature is defined on only 
+one edge of the `Triangle`, i.e. edge 1-2. Ensure that spatial elements
+respect this correspondence while integrating.
+"""
+	function Quadrature(T::Type{<:Triangle{3}}, 
+						dim::Int64, order::Int64)
+		@assert dim == 1 "Expected dim = 1, got dim = "*string(dim)
+		quad1D = Quadrature(Line{2}, order)
+		basis = Basis(Line{2})
+		nodes = domain(T)
+		points = Array{Array{Float64, 1}, 1}()
+		weights = Array{Float64, 1}()
+		for i in eachindex(quad1D.points)
+			p = quad1D.points[i]
+			w = quad1D.weights[i]
+
+			p_new = sum([ nodes[:,I]*basis.functions[I](p) for I in 1:2 ])
+			dx = sum([nodes[:,I]*(ForwardDiff.gradient(basis.functions[I], p)[1]) for I in 1:2])
+			w_new = w*norm(dx)
+
+			push!(points, p_new)
+			push!(weights, w_new)
+		end
+		points = tuple(points...)
+		weights = tuple(weights...)
+		new{Triangle, order}(points, weights)
 	end
 	function Quadrature(::Type{<:Quadrilateral}, order::Int64)
 		q1 = Quadrature(Line,order)

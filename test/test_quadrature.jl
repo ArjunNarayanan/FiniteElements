@@ -104,6 +104,39 @@ I3 = Integrate(P33, QTriangle3)
 
 
 ###############################################################
+# Check 1D quadrature on triangles
+
+quad1D = Quadrature(Triangle{3}, 1, 1)
+I1 = Integrate(P1, quad1D)
+
+@test abs(I1 - 6.5) < tol
+
+quad1D = Quadrature(Triangle{3}, 1, 2)
+I2 = Integrate(P3, quad1D)
+
+@test abs(I2 - 5.5) < tol
+
+quad1D = Quadrature(Triangle{3}, 1, 3)
+I3 = Integrate(P5, quad1D)
+
+@test abs(I3 - 35/4) < tol
+
+quad1D = Quadrature(Triangle{3}, 1, 4)
+I4 = Integrate(P7, quad1D)
+
+@test abs(I4 - - 3.5) < tol
+
+quad1D = Quadrature(Triangle{3}, 1, 5)
+I5 = Integrate(P9, quad1D)
+
+@test abs(I5 - - 4.5) < tol
+
+
+###############################################################
+
+
+
+###############################################################
 # Check quadrature on quadrilaterals
 
 
