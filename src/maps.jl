@@ -114,6 +114,18 @@ struct Map{Triangulation, dim, spacedim}
 		end
 		new{T,dim,spacedim}(master_elmt, data, args)
 	end
+	function Map{T,spacedim}(quadrature::Quadrature,
+				args::Vararg{Symbol}) where {T <: Triangulation{N,dim}} where {N,dim,spacedim}
+		master_args = mapArgsToMasterArgs(args...)
+		master_elmt = Master(T, quadrature, master_args...)
+
+		data = Dict{Symbol, Array}()
+		nq = length(master_elmt.quadrature.points)
+		for arg in args
+			eval(arg)(data, nq, dim, spacedim, master_elmt)
+		end
+		new{T,dim,spacedim}(master_elmt, data, args)
+	end
 end
 
 

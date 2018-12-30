@@ -1,5 +1,5 @@
 using Test
-using geometry, master, LinearAlgebra
+using geometry, quadrature, master, LinearAlgebra
 
 
 
@@ -11,13 +11,8 @@ function TestTriangulation(T,n,p)
 	b = master.basis.functions
 	q = master.quadrature.points
 	vals = master[:values]
-	@test norm([vals[i,j] - b[i](q[j]) for i in 1:l, j in 1:p]) < tol
+	@test norm([vals[i,j] - b[i](q[j]) for i in 1:length(b), j in 1:length(q)]) < tol
 end
-
-
-
-
-
 
 TestTriangulation(Line,2,1)
 TestTriangulation(Line,2,2)
@@ -51,5 +46,26 @@ TestTriangulation(Quadrilateral,9,3)
 TestTriangulation(Quadrilateral,9,4)
 TestTriangulation(Quadrilateral,9,5)
 
+
+####################################################
+# Test master element with 1D quadrature rule
+function TestMasterWithQuad1D(T,p)
+	quad1D = Quadrature(T, 1, p)
+	master = Master(T, quad1D, :values)
+	b = master.basis.functions
+	q = master.quadrature.points
+	vals = master[:values]
+	@test norm([vals[i,j] - b[i](q[j]) for i in 1:length(b), j in 1:length(q)]) < tol
+end
+
+TestMasterWithQuad1D(Triangle{3}, 1)
+TestMasterWithQuad1D(Triangle{3}, 2)
+TestMasterWithQuad1D(Triangle{3}, 3)
+TestMasterWithQuad1D(Triangle{3}, 4)
+TestMasterWithQuad1D(Triangle{3}, 5)
+
+
+
+####################################################
 
 true

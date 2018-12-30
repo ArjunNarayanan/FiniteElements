@@ -89,6 +89,18 @@ struct Master{T <: Triangulation}
 
 		new{T}(basis, quadrature, data)
 	end
+	function Master(T::Type{<:Triangulation},
+		quadrature::Quadrature, args::Vararg{Symbol})
+		basis = Basis(T)
+		data = Dict{Symbol, Array}()
+
+		for arg in args
+			if eval(arg) != nothing
+				data[arg] = eval(arg)(basis, quadrature)
+			end
+		end
+		new{T}(basis, quadrature, data)
+	end
 end
 
 

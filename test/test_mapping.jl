@@ -1,4 +1,5 @@
-using geometry, master, maps, reinitialize, LinearAlgebra, Test
+using geometry, master, maps, reinitialize, 
+		LinearAlgebra, Test, quadrature
 
 tol = 1e-10
 
@@ -26,6 +27,26 @@ exp_jac = [3.0 1.0
 @test norm(mapping[:jacobian][1] - exp_jac) < tol
 @test norm(mapping[:inverse_jacobian][1] - inv(exp_jac)) < tol
 @test abs(mapping[:determinant][1] - det(exp_jac)) < tol
+##################################################
+
+
+##################################################
+# Test edge mapping on Triangle{3} with 3 point rule
+
+t1 = [1.0  4.0  2.0
+	  1.0  2.0  4.0]
+
+quad1D = Quadrature(Triangle{3}, 1, 3)
+mapping = Map{Triangle{3},2}(quad1D, :coordinates, :gradients)
+reinit(mapping, t1)
+
+exp_coords = [ [1+3*(1-sqrt(3/5))/2, 1+(1-sqrt(3/5))/2],
+			   [1+3/2, 1+ 1/2],
+			   [1+3*(1+sqrt(3/5))/2, 1+(1+sqrt(3/5))/2] ]
+@test norm([mapping[:coordinates][I] - exp_coords[I] for I = 1:3]) < tol
+
+
+
 ##################################################
 
 
