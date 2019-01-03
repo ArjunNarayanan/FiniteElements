@@ -1,12 +1,12 @@
 module maps
 
-import Base: getindex
+import Base: getindex, values
 
 
 
 using geometry, quadrature, master
 
-export Map, getindex, coordinates, gradients
+export Map, getindex, coordinates, gradients, values
 
 
 
@@ -142,6 +142,18 @@ function coordinates(mapping::Map{T,dim,spacedim},
 			mapping.data[:coordinates][q][i] = sum([mapping.master[:values][I,q]*nodal_coordinates[i,I] for I in 1:length(mapping.master.basis.functions)])
 		end
 	end
+end
+
+
+"""
+	values(mapping::Map{T,dim,spacedim},
+	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
+Basis function values don't need to be updated.
+This is just an empty function.
+"""
+function values(mapping::Map{T,dim,spacedim},
+	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
+	
 end
 
 
