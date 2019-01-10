@@ -155,11 +155,25 @@ function getInterfaceNodeIDs(mesh)
 	node_ids = Int[]
 	for key in keys(mesh.data[:element_groups]["interface"])
 		elm_ids = mesh.data[:element_groups]["interface"][key]
-		elmts = mesh.data[:elements][key][elm_ids]
+		elmts = mesh.data[:elements][key][:, elm_ids]
 		append!(node_ids, elmts[:])
 	end
 	unique!(node_ids)
 	return node_ids
+end
+
+"""
+	replaceNodeIDs(input_array, old_node_ids, new_node_ids)
+Replace all occurrences of node IDs in `old_node_ids` with their 
+corresponding values in `new_node_ids`.
+"""
+function replaceNodeIDs!(input_array, old_node_ids, new_node_ids)
+	@assert length(old_node_ids) == length(new_node_ids)
+	for i in eachindex(old_node_ids)
+		N_old = old_node_ids[i]
+		N_new = new_node_ids[i]
+		replace!(input_array, N_old => N_new)
+	end
 end
 
 
@@ -187,12 +201,42 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 	##############################################
 
 	##############################################
-	shell_2D_elmt_ids = mesh.data[:element_groups]["shell"][Triangle{3}]
-	shell_2D_elmts = mesh.data[:elements][Triangle{3}][:,shell_2D_elmt_ids]
-	shell_1D_elmt_ids = range(n_1D_int_elmts_core+1, length = 2*n_1D_int_elmts_core)
-	mesh.data[:element_groups]["interface_shell"] = Dict()
-	mesh.data[:element_groups]["interface_shell"][Line{2}] = shell_1D_elmt_ids
+	# Third: Replace all occurrences of the old node ids in the shell
+	# elements with the new node ids
+	for key in keys(mesh.data[:element_groups]["shell"])
+		shell_2D_elmt_ids = mesh.data[:element_groups]["shell"][key]
+		shell_2D_elmts = mesh.data[:elements][key][:,shell_2D_elmt_ids]
+		replaceNodeIDs!(shell_2D_elmts, old_int_node_ids, new_int_node_ids)
+		mesh.data[:elements][key][:,shell_2D_elmt_ids] = shell_2D_elmts
+	end
 	##############################################
+
+	##############################################
+	# Fourth: add the additional 1D elements for the new nodes 
+	# into mesh.data[:elements]
+	mesh.data[:element_groups]["interface_shell"] = Dict()
+	for key in keys(mesh.data[:element_groups]["interface_core"])
+		core_1D_elmt_ids = mesh.data[:element_groups]["interface_core"][key]
+		core_1D_elmts = mesh.data[:elements][key][:, core_1D_elmt_ids]
+		shell_1D_elmts = copy(core_1D_elmts)
+		replaceNodeIDs!(shell_1D_elmts, old_int_node_ids, new_int_node_ids)
+		e_last = size(mesh.data[:elements][key])[2]
+		mesh.data[:elements][key] = hcat(mesh.data[:elements][key], shell_1D_elmts)
+		n_shell_1D_elmts = size(shell_1D_elmts)[2]
+		shell_1D_elmt_ids = collect(range(e_last+1, length = n_shell_1D_elmts))
+		mesh.data[:element_groups]["interface_shell"][key] = shell_1D_elmt_ids
+	end
+	##############################################
+
+	##############################################
+	# Fifth: Find the node corresponding to xmax_core
+	# get the shell equivalent of this node, and store it in
+	# shell_ir
+	xmax_core_id = mesh.data[:node_groups]["xmax_core"][1]
+	id = findfirst(x -> x == xmax_core_id, old_int_node_ids)
+	shell_ir_id = new_int_node_ids[id]
+	mesh.data[:node_groups]["shell_ir"] = [shell_ir_id]
+	##############################################	
 end
 
 
