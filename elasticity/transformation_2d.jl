@@ -5,6 +5,7 @@ using FiniteElements, TensorOperations, LinearAlgebra
 export assembleSystem, duplicateInterfaceNodes
 
 const spacedim = 2
+const dofs = 2
 δ = diagm(0 => ones(spacedim))
 
 
@@ -61,7 +62,6 @@ function assembleElementMatrix(node_ids, nodes, mapping,
 			end
 		end
 	end
-	updateSystem(assembler, node_ids)
 end
 
 
@@ -84,7 +84,6 @@ function assembleElementRHS(node_ids, nodes, mapping,
 			assembler.element_rhs[I] += FI*mapping[:dx][q]
 		end
 	end
-	updateSystem(assembler, node_ids)
 end
 
 
@@ -110,40 +109,66 @@ function assembleSystem(mesh::Mesh{2},
 		Es[i,j,k,l] = λs*δ[i,j]*δ[k,l] + μs*(δ[i,k]*δ[j,l] + δ[i,l]*δ[j,k])
 	end
 
-	elType = Triangle{3}
-	dofs = 2
+	core_elTypes = keys(mesh.data[:element_groups]["core"])
+	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
+	elTypes = union(core_elTypes, shell_elTypes)
 
 	total_ndofs = size(mesh.data[:nodes])[2]*dofs
 
 	println("----------SOLVING FE PROBLEM----------")
 	println("\tTotal Number of DOFs = ", total_ndofs)
 
-	mapping = Map{elType,spacedim}(1, :gradients)
-	assembler = Assembler(elType, dofs)
+	mapping_dict = Dict()
+	assembler_dict = Dict()
+	
+	for elType in elTypes
+		mapping_dict[elType] = Map{elType,spacedim}(1, :gradients)
+		assembler_dict[elType] = Assembler(elType, dofs)
+	end
 
 	KIJ = zeros(dofs,dofs)
 	FI = zeros(dofs)
 
+	system_matrix = SystemMatrix()
+	system_rhs = SystemRHS()
+
 	println("\tAssembling CORE elements")
 
-	@time for elem_id in mesh.data[:element_groups]["core"][elType]
-		node_ids = mesh.data[:elements][elType][:,elem_id]
-		nodes = mesh.data[:nodes][:, node_ids]
-		assembleElementMatrix(node_ids, nodes, mapping,
-					assembler, KIJ, Ec)
+	@time for elType in core_elTypes
+		mapping = mapping_dict[elType]
+		assembler = assembler_dict[elType]
+		for elem_id in mesh.data[:element_groups]["core"][elType]
+			node_ids = mesh.data[:elements][elType][:,elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			assembleElementMatrix(node_ids, nodes, mapping,
+						assembler, KIJ, Ec)
+			updateSystemMatrix(system_matrix, 
+				assembler.element_matrix, node_ids, 
+				assembler.ndofs)
+		end
 	end
 
 	println("\tAssembling SHELL elements")
 
-	@time for elem_id in mesh.data[:element_groups]["shell"][elType]
-		node_ids = mesh.data[:elements][elType][:,elem_id]
-		nodes = mesh.data[:nodes][:, node_ids]
-		assembleElementMatrix(node_ids, nodes, mapping,
-					assembler, KIJ, Es)
-		assembleElementRHS(node_ids, nodes, mapping,
-					assembler, FI, λs, μs, ϵt)
+	@time for elType in shell_elTypes
+		mapping = mapping_dict[elType]
+		assembler = assembler_dict[elType]
+		for elem_id in mesh.data[:element_groups]["shell"][elType]
+			node_ids = mesh.data[:elements][elType][:,elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			assembleElementMatrix(node_ids, nodes, mapping,
+						assembler, KIJ, Es)
+			updateSystemMatrix(system_matrix, 
+					assembler.element_matrix, node_ids,
+					assembler.ndofs)
+			assembleElementRHS(node_ids, nodes, mapping,
+						assembler, FI, λs, μs, ϵt)
+			updateSystemRHS(system_rhs, assembler.element_rhs,
+				node_ids, assembler.ndofs)
+		end
 	end
-	system = GlobalSystem(assembler)
+
+	system = GlobalSystem(system_matrix, system_rhs, dofs)
 	return system
 end
 

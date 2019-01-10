@@ -72,7 +72,7 @@ for q in eachindex(mapping.master.quadrature.points)
 	end
 end
 
-updateSystem(assembler, [1,2,3])
+
 
 
 phi1 = [-0.25, -0.25]
@@ -134,7 +134,6 @@ for q in eachindex(mapping.master.quadrature.points)
 	end
 end
 
-updateSystem(assembler, [1,2,3,4])
 
 ##################################################
 

@@ -2,7 +2,9 @@ module assembly
 
 using geometry, SparseArrays
 
-export Assembler, updateSystem, GlobalSystem, extract
+export Assembler, SystemMatrix, SystemRHS, 
+		updateSystemMatrix, updateSystemRHS, 
+		GlobalSystem, extract
 
 
 
@@ -162,35 +164,15 @@ end
 Collects all the structures for assembling the linear system.
 """
 struct Assembler
-	system_matrix::SystemMatrix
-	system_rhs::SystemRHS
 	element_matrix::Array{Array{Float64}, 2}
 	element_rhs::Array{Array{Float64}, 1}
 	ndofs::Int64
 	function Assembler(T::Type{<:Triangulation}, 
 						ndofs::Int64)
-		system_matrix = SystemMatrix()
-		system_rhs = SystemRHS()
 		element_matrix = elementMatrix(T, ndofs)
 		element_rhs = elementRHS(T, ndofs)
-		new(system_matrix, system_rhs, element_matrix, element_rhs, ndofs)
+		new(element_matrix, element_rhs, ndofs)
 	end
-end
-
-
-
-
-"""
-	updateSystem(assembler::Assembler, nodes::Array{Int64, 1})
-Calls `updateSystemMatrix` and `updateSystemRHS`.
-"""
-function updateSystem(assembler::Assembler, 
-	nodes::Array{Int64, 1})
-	updateSystemMatrix(assembler.system_matrix, 
-		assembler.element_matrix,
-		nodes, assembler.ndofs)
-	updateSystemRHS(assembler.system_rhs, assembler.element_rhs,
-		nodes, assembler.ndofs)
 end
 
 
@@ -210,14 +192,18 @@ struct GlobalSystem
 	D::Array{Float64, 1}
 	F::SparseVector{Float64, Int64}
 	ndofs::Int64
-	function GlobalSystem(assembler::Assembler)
-		K = sparse(assembler.system_matrix.I, 
-				   assembler.system_matrix.J, 
-				   assembler.system_matrix.vals)
-		F = sparsevec(assembler.system_rhs.I, 
-					  assembler.system_rhs.vals)
+	function GlobalSystem(system_matrix::SystemMatrix,
+			system_rhs::SystemRHS,
+			ndofs::Int64)
+		K = sparse(system_matrix.I, 
+				   system_matrix.J, 
+				   system_matrix.vals)
+		N = size(K)[1]
+		F = sparsevec(system_rhs.I, 
+					  system_rhs.vals,
+					  N)
 		D = zeros(F.n)
-		new(K, D, F, assembler.ndofs)
+		new(K, D, F, ndofs)
 	end
 end
 
