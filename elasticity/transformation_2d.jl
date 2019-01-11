@@ -92,8 +92,6 @@ end
 Assemble the `GlobalSystem` for the current `mesh`. `Ec` and
 `Es` are the 4th order elasticity tensors for the core and shell
 respectively. `θ0` is the volumetric transformation strain in the shell.
-Currently only uses `Triangle{3}` elements, but can be generalized
-in the future.
 """
 function assembleSystem(mesh::Mesh{2},
 					λc, μc, λs, μs, θ0)
@@ -222,7 +220,6 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 	##############################################
 	# Second: redefine mesh.data[:element_groups]["interface"]
 	mesh.data[:element_groups]["interface_core"] = pop!(mesh.data[:element_groups], "interface")
-	n_1D_int_elmts_core = length(mesh.data[:element_groups]["interface_core"][Line{2}])
 	##############################################
 
 	##############################################
