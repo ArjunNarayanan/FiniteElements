@@ -170,6 +170,22 @@ function assembleSystem(mesh::Mesh{2},
 	return system
 end
 
+
+"""
+	applyFreeSlipInterface(system::GlobalSystem, mesh::Mesh)
+Constrains the degrees-of-freedom on the interface to have
+the same value normal to the interface.
+"""
+function applyFreeSlipInterface(system::GlobalSystem, mesh::Mesh)
+	elTypes = keys(mesh.data[:element_groups]["interface_core"])
+	mapping_dict = Dict()
+	assembler_dict = Dict()
+	for elType in elTypes
+		mapping_dict[elType] = Map{elType,spacedim}(1, :values)
+		assembler_dict[elType] = Assembler(elType, dofs)
+	end
+end
+
 """
 	getInterfaceNodeIDs(mesh)
 Return a list of all unique node IDs of nodes on the interface.
@@ -198,6 +214,14 @@ function replaceNodeIDs!(input_array, old_node_ids, new_node_ids)
 		replace!(input_array, N_old => N_new)
 	end
 end
+
+
+
+
+
+
+
+
 
 
 """

@@ -85,8 +85,8 @@ name gives an `Array{Int, 1}` with the element numbers of the elements in this g
 Store the contents of `data` in a `Mesh{spacedim}` object.
 """
 struct Mesh{spacedim}
-	data::Dict{Symbol, Any}
-	function Mesh{spacedim}(data::Dict{Symbol, Any}) where spacedim
+	data::Dict
+	function Mesh{spacedim}(data::Dict) where spacedim
 		new{spacedim}(data)
 	end
 end
