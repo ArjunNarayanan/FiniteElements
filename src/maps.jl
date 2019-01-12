@@ -81,7 +81,8 @@ The arguments are mapped as:
 """
 function mapArgsToMasterArgs(args::Vararg{Symbol})
 	masterArgsDict = Dict(:coordinates => :values,
-						:gradients => :gradients)
+						:gradients => :gradients,
+						:values => :values)
 	masterArgs = tuple([ haskey(masterArgsDict, arg) ? masterArgsDict[arg] : :nothing for arg in args]...)
 	return masterArgs
 end
@@ -161,13 +162,13 @@ end
 
 """
 	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
-	J::Float64, T::Type{<:Map{T, 2, 2}}) where T
-Invert `A` and store it in `B`. The method is specialized by the `dim` and `spacedim`
-parameters of `Map`.
+	J::Float64, ::Type{<:Map{T, 2, 2}}) where T
+Compute the inverse map of the jacobian. For a 2X2 matrix, this is the regular
+matrix inverse.
 """
 function invert(A::Array{Float64, 2}, 
-	B::Array{Float64, 2}, J::Float64,
-	 ::Type{<:Map{T, 2, 2}}) where T
+				B::Array{Float64, 2}, J::Float64,
+	 			::Type{<:Map{T, 2, 2}}) where T
 	B[1,1] =  1.0/J*A[2,2]
 	B[1,2] = -1.0/J*A[1,2]
 	B[2,1] = -1.0/J*A[2,1]
@@ -175,13 +176,37 @@ function invert(A::Array{Float64, 2},
 end
 
 """
+	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
+	J::Float64, ::Type{<:Map{T, 2, 2}}) where T
+Compute the inverse map of the jacobian `A` and store it in `B`.
+For a 2X1 matrix, this is the element-wise reciprocal.
+"""
+function invert(A::Array{Float64, 2}, 
+				B::Array{Float64, 2}, J::Float64,
+	 			::Type{<:Map{T, 1, 2}}) where T
+	B[1,1] = 1.0/A[1,1]
+	B[1,2] = 1.0/A[2,1]
+end
+
+
+"""
 	determinant(A::Array{Float64, 2}, T::Type{<:Map{N,2,2}}) where N
-Return the determinant of `A`. The method is specialized by the `dim` and `spacedim`
-parameters of `Map`.
+Compute the 'determinant' of the jacobian mapping. 
+For a 2X2 matrix, this is the regular matrix determinant.
 """
 function determinant(A::Array{Float64, 2}, ::Type{<:Map{T,2,2}}) where T
 	return A[1,1]*A[2,2] - A[1,2]*A[2,1]
 end
+
+"""
+	determinant(A::Array{Float64, 2}, ::Type{<:Map{T,1,2}}) where T
+Compute the 'determinant' of the jacobian mapping. 
+For a 2X1 matrix, this is the L2 norm.
+"""
+function determinant(A::Array{Float64, 2}, ::Type{<:Map{T,1,2}}) where T
+	return sqrt(A[1,1]^2 + A[2,1]^2)
+end
+
 
 
 """
