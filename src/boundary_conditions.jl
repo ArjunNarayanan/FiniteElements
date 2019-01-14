@@ -113,12 +113,14 @@ function applyConstraints(system::GlobalSystem, constraint::Constraint)
 	for i in set_to_zero.nzind
 		if i != constraint.index
 			system.K[constraint.index, i] = 0.0
+			system.K[i, constraint.index] = 0.0
 		end
 	end
 	scale_by = system.K[constraint.index, constraint.index]
 	system.K[constraint.index, constraint.index] *= constraint.coeff
 	for (col_index, value) in constraint.constrain_to
 		system.K[constraint.index, col_index] = -scale_by*value
+		system.K[col_index, constraint.index] = -scale_by*value
 	end
 	system.F[constraint.index] = scale_by*constraint.inhomogeneity
 end

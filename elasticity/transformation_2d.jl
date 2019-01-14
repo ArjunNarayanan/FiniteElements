@@ -1,8 +1,9 @@
 module transformation_2d
 
-using FiniteElements, TensorOperations, LinearAlgebra
+using FiniteElements, TensorOperations, LinearAlgebra, SparseArrays
 
-export assembleSystem, duplicateInterfaceNodes
+export assembleSystem, duplicateInterfaceNodes, 
+		applyFreeSlipInterface
 
 const spacedim = 2
 const dofs = 2
@@ -14,7 +15,7 @@ const dofs = 2
 Compute the contraction:
 	∇sym(ϕI) * E * ∇sym(ϕJ) 
 which is the `[I,J]` entry in the element stiffness 
-matrix. Here `∇sym` refers to the symmetrized gradient.
+matrix. Here `∇sym` refers to the symmetric gradient.
 """
 function getKIJ(KIJ, ∇ϕI, E, ∇ϕJ)
 	@tensor begin
@@ -38,24 +39,30 @@ end
 
 
 """
-	assembleElementMatrix(node_ids, nodes, mapping,
-							assembler, KIJ, E, ϵt)
-Compute the entries of the element matrix. Assemble
-the entries into `assembler.system_matrix`.
+	assembleElementMatrix(nodes::Array{Float64, 2}, 
+							   mapping::Map,
+							   assembler::Assembler, 
+							   KIJ::Array{Float64, 2}, 
+							   E::Array{Float64, 4})
+Compute the entries of the element matrix for the equilibrium equation
+of linear elasticity. Store the entries into `assembler.element_matrix`.
 """
-function assembleElementMatrix(node_ids, nodes, mapping,
-							assembler, KIJ, E)
+function assembleElementMatrix(nodes::Array{Float64, 2}, 
+							   mapping::Map,
+							   assembler::Assembler, 
+							   KIJ::Array{Float64, 2}, 
+							   E::Array{Float64, 4})
 
 	reinit(assembler)
 	reinit(mapping, nodes)
 
-	N = length(mapping.master.basis.functions)
-	# Loop over quadrature points
+	Nnodes = length(mapping.master.basis.functions)
+
 	for q in eachindex(mapping.master.quadrature.points)
 		(pq, wq) = mapping.master.quadrature[q]
-		for I in 1:N
+		for I in 1:Nnodes
 			∇ϕI = mapping[:gradients][I,q]
-			for J in 1:N
+			for J in 1:Nnodes
 				∇ϕJ = mapping[:gradients][J,q]
 				getKIJ(KIJ, ∇ϕI, E, ∇ϕJ)
 				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
@@ -66,19 +73,26 @@ end
 
 
 """
-	assembleElementRHS(node_ids, nodes, mapping,
-						assembler, FI, E, ϵt)
-Compute the entries of the element RHS. Assemble the
-entries into `assembler.system_rhs`.
+	assembleElementRHS(nodes::Array{Float64, 2}, 
+						    mapping::Map,
+							assembler::Assembler, 
+							FI::Array{Float64, 1}, λs::Float64, 
+							μs::Float64, ϵt::Array{Float64, 2})
+Compute the entries of the element RHS for the equilibrium equation
+of linear elasticity driven by transformation strain `ϵt`. 
+Store the entries into `assembler.element_rhs`.
 """
-function assembleElementRHS(node_ids, nodes, mapping,
-						assembler, FI, λs, μs, ϵt)
+function assembleElementRHS(nodes::Array{Float64, 2}, 
+						    mapping::Map,
+							assembler::Assembler, 
+							FI::Array{Float64, 1}, λs::Float64, 
+							μs::Float64, ϵt::Array{Float64, 2})
 	reinit(assembler)
 	reinit(mapping, nodes)
-	N = length(mapping.master.basis.functions)
+	Nnodes = length(mapping.master.basis.functions)
 	for q in eachindex(mapping.master.quadrature.points)
 		(pq, wq) = mapping.master.quadrature[q]
-		for I in 1:N
+		for I in 1:Nnodes
 			∇ϕI = mapping[:gradients][I,q]
 			getFI(FI, ∇ϕI, λs, μs, ϵt)
 			assembler.element_rhs[I] += FI*mapping[:dx][q]
@@ -93,8 +107,8 @@ Assemble the `GlobalSystem` for the current `mesh`. `Ec` and
 `Es` are the 4th order elasticity tensors for the core and shell
 respectively. `θ0` is the volumetric transformation strain in the shell.
 """
-function assembleSystem(mesh::Mesh{2},
-					λc, μc, λs, μs, θ0)
+function assembleSystem(mesh::Mesh{spacedim},
+					λc, μc, λs, μs, θ0) where spacedim
 	Ec = zeros(ntuple(x -> spacedim, 4)...)
 	Es = zeros(ntuple(x -> spacedim, 4)...)
 
@@ -138,7 +152,7 @@ function assembleSystem(mesh::Mesh{2},
 		for elem_id in mesh.data[:element_groups]["core"][elType]
 			node_ids = mesh.data[:elements][elType][:,elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
-			assembleElementMatrix(node_ids, nodes, mapping,
+			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Ec)
 			updateSystemMatrix(system_matrix, 
 				assembler.element_matrix, node_ids, 
@@ -154,12 +168,12 @@ function assembleSystem(mesh::Mesh{2},
 		for elem_id in mesh.data[:element_groups]["shell"][elType]
 			node_ids = mesh.data[:elements][elType][:,elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
-			assembleElementMatrix(node_ids, nodes, mapping,
+			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Es)
 			updateSystemMatrix(system_matrix, 
 					assembler.element_matrix, node_ids,
 					assembler.ndofs)
-			assembleElementRHS(node_ids, nodes, mapping,
+			assembleElementRHS(nodes, mapping,
 						assembler, FI, λs, μs, ϵt)
 			updateSystemRHS(system_rhs, assembler.element_rhs,
 				node_ids, assembler.ndofs)
@@ -170,20 +184,119 @@ function assembleSystem(mesh::Mesh{2},
 	return system
 end
 
+"""
+	getNormal(T::Array{Float64, 1}, N::Array{Float64, 1})
+Compute the outward normal `N` from the tangent `T`.
+"""
+function getNormal(T::Array{Float64, 1}, N::Array{Float64, 1})
+	scale = sqrt(T[1]^2 + T[2]^2)
+	N[1] = T[2]/scale
+	N[2] = -T[1]/scale
+end
 
 """
-	applyFreeSlipInterface(system::GlobalSystem, mesh::Mesh)
-Constrains the degrees-of-freedom on the interface to have
-the same value normal to the interface.
+	getKIJ(KIJ::Array{Float64, 2}, N::Array{Float64, 1})
+Compute the outer product `N` and store it in `KIJ`.
 """
-function applyFreeSlipInterface(system::GlobalSystem, mesh::Mesh)
-	elTypes = keys(mesh.data[:element_groups]["interface_core"])
-	mapping_dict = Dict()
-	assembler_dict = Dict()
-	for elType in elTypes
-		mapping_dict[elType] = Map{elType,spacedim}(1, :values)
-		assembler_dict[elType] = Assembler(elType, dofs)
+function getKIJ(KIJ::Array{Float64, 2}, N::Array{Float64, 1})
+	for i in 1:length(N)
+		for j in 1:length(N)
+			KIJ[i,j] = N[i]*N[j]
+		end
 	end
+end
+
+"""
+	assembleElementMatrix(nodes::Array{Float64, 2}, 
+						  mapping::Map, 
+						  assembler::Assembler, 
+						  KIJ::Array{Float64, 2},
+						  KIJ_temp::Array{Float64, 2},
+						  normal::Array{Float64, 1},
+						  penalty::Float64)
+Compute the entries of the element matrix for the free-slip interface
+condition. Store the entries into `assembler.element_matrix`."""
+function assembleElementMatrix(nodes::Array{Float64, 2}, 
+							   mapping::Map, 
+							   assembler::Assembler, 
+							   KIJ::Array{Float64, 2},
+							   KIJ_temp::Array{Float64, 2},
+							   normal::Array{Float64, 1},
+							   penalty::Float64)
+	reinit(mapping, nodes)
+	reinit(assembler)
+
+	Nnodes = length(mapping.master.basis.functions)
+
+	for q in eachindex(mapping.master.quadrature.points)
+		getNormal(mapping[:jacobian][q][:,1], normal)
+		getKIJ(KIJ, normal)
+		KIJ *= penalty
+		for I in 1:Nnodes
+			ϕI = mapping[:values][I,q]
+			for J in 1:Nnodes
+				ϕJ = mapping[:values][J,q]
+				KIJ_temp[:] = ϕI*ϕJ*KIJ[:]
+				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
+			end
+		end
+	end
+end
+
+"""
+	applyFreeSlipInterface(system::GlobalSystem, 
+		mesh::Mesh; penalty = 1000)
+Modifies `system` to ensure that degrees-of-freedom normal
+to the interface have continuity via a penalty formulation.
+"""
+function applyFreeSlipInterface(system::GlobalSystem, 
+			mesh::Mesh{spacedim}; penalty = 1000, q_order = 1) where spacedim
+	ndofs = system.ndofs
+
+	println("\tEnforcing free slip interface")
+	elTypes = keys(mesh.data[:element_groups]["interface_core"])
+
+	penalty = penalty*maximum(abs.(diag(system.K)))
+
+	KIJ = zeros(ndofs, ndofs)
+	KIJ_temp = zeros(ndofs, ndofs)
+	normal = zeros(2)
+
+	system_matrix = SystemMatrix()
+
+	@time for elType in elTypes
+		mapping = Map{elType,spacedim}(q_order, :values, :gradients)
+		assembler = Assembler(elType, ndofs)
+		for i in eachindex(mesh.data[:element_groups]["interface_core"][elType])
+			c_el_id = mesh.data[:element_groups]["interface_core"][elType][i]
+			s_el_id = mesh.data[:element_groups]["interface_shell"][elType][i]
+
+			c_n_ids = mesh.data[:elements][elType][:, c_el_id]
+			s_n_ids = mesh.data[:elements][elType][:, s_el_id]
+			nodes = mesh.data[:nodes][:, c_n_ids]
+			assembleElementMatrix(nodes, mapping, assembler, 
+									KIJ, KIJ_temp, normal, penalty)
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, c_n_ids,
+				ndofs)
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, s_n_ids, 
+				ndofs)
+			for j in 1:length(assembler.element_matrix)
+				assembler.element_matrix[j] *= -1.0
+			end
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, s_n_ids,
+				c_n_ids, ndofs)
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, c_n_ids,
+				s_n_ids, ndofs)
+		end
+	end
+	n_g_dof = size(system.K)
+	K2 = sparse(system_matrix.I, system_matrix.J,
+				system_matrix.vals, n_g_dof[1], n_g_dof[2])
+	system.K += K2
 end
 
 """
@@ -214,14 +327,6 @@ function replaceNodeIDs!(input_array, old_node_ids, new_node_ids)
 		replace!(input_array, N_old => N_new)
 	end
 end
-
-
-
-
-
-
-
-
 
 
 """
@@ -273,16 +378,6 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 		mesh.data[:element_groups]["interface_shell"][key] = shell_1D_elmt_ids
 	end
 	##############################################
-
-	##############################################
-	# Fifth: Find the node corresponding to xmax_core
-	# get the shell equivalent of this node, and store it in
-	# shell_ir
-	xmax_core_id = mesh.data[:node_groups]["xmax_core"][1]
-	id = findfirst(x -> x == xmax_core_id, old_int_node_ids)
-	shell_ir_id = new_int_node_ids[id]
-	mesh.data[:node_groups]["shell_ir"] = [shell_ir_id]
-	##############################################	
 end
 
 

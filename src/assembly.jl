@@ -92,12 +92,10 @@ end
 """
 	updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2}, 
-	nodes::Array{Int64, 1})
-Update the `system_matrix` with the corresponding entries from 
-the `element_matrix`. Use `triangulation` to get the global
-node numbers. Use `system_matrix.dofs` to get the number of
-degrees of freedom per node in order to compute the global
-dof number.
+	nodes::Array{Int64, 1}, ndofs::Int64)
+Update `system_matrix` with the values in `element_matrix`.
+`nodes` is an array of global node numbers. `ndofs` is the 
+number of degrees of freedom per node.
 """
 function updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2},
@@ -123,6 +121,44 @@ function updateSystemMatrix(system_matrix::SystemMatrix,
 		end
 	end
 end
+
+"""
+	updateSystemMatrix(system_matrix::SystemMatrix,
+	element_matrix::Array{Array{Float64}, 2}, 
+	nodes1::Array{Int64, 1}, nodes2::Array{Int64, 1})
+Update `system_matrix` with the values in `element_matrix`.
+`nodes1` and `nodes2` are an array of global node numbers. 
+The method assumes that `element_matrix[I,J]` is associated
+with the coupling between global nodes `nodes1[I]` and 
+`nodes2[J]`. `ndofs` is the number of degrees of freedom per node.
+"""
+function updateSystemMatrix(system_matrix::SystemMatrix,
+	element_matrix::Array{Array{Float64}, 2},
+	nodes1::Array{Int64, 1}, nodes2::Array{Int64, 1},
+	ndofs::Int64)
+	for I in 1:length(nodes1)
+		node_I = nodes1[I]
+		for J in 1:length(nodes2)
+			node_J = nodes2[J]
+			counter = 1
+			for j in 1:ndofs
+				global_j = (node_J - 1)*ndofs + j
+				for i in 1:ndofs
+					global_i = (node_I - 1)*ndofs + i
+					
+					value = element_matrix[I,J][counter]
+					counter += 1
+
+					push!(system_matrix.I, global_i)
+					push!(system_matrix.J, global_j)
+					push!(system_matrix.vals, value)
+				end
+			end	
+		end
+	end
+end
+
+
 
 """
 	updateSystemRHS(system_rhs::SystemRHS,
@@ -187,7 +223,7 @@ of the right hand side `F`, and the global solution vector `D`.
 	F::SparseVector{Float64, Int64}
 	ndofs::Int64
 """
-struct GlobalSystem
+mutable struct GlobalSystem
 	K::SparseMatrixCSC{Float64, Int64}
 	D::Array{Float64, 1}
 	F::SparseVector{Float64, Int64}
