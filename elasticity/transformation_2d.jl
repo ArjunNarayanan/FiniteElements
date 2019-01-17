@@ -3,7 +3,7 @@ module transformation_2d
 using FiniteElements, TensorOperations, LinearAlgebra, SparseArrays
 
 export assembleSystem, duplicateInterfaceNodes, 
-		applyFreeSlipInterface
+		applyFreeSlipInterface, computeElementAveragedStrain
 
 const spacedim = 2
 const dofs = 2
@@ -101,6 +101,7 @@ function assembleElementRHS(nodes::Array{Float64, 2},
 end
 
 
+
 """
 	assembleSystem(mesh::Mesh{spacedim}, Ec, Es, θ0) where spacedim
 Assemble the `GlobalSystem` for the current `mesh`. `Ec` and
@@ -108,7 +109,7 @@ Assemble the `GlobalSystem` for the current `mesh`. `Ec` and
 respectively. `θ0` is the volumetric transformation strain in the shell.
 """
 function assembleSystem(mesh::Mesh{spacedim},
-					λc, μc, λs, μs, θ0) where spacedim
+					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
 	Ec = zeros(ntuple(x -> spacedim, 4)...)
 	Es = zeros(ntuple(x -> spacedim, 4)...)
 
@@ -134,7 +135,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 	assembler_dict = Dict()
 	
 	for elType in elTypes
-		mapping_dict[elType] = Map{elType,spacedim}(1, :gradients)
+		mapping_dict[elType] = Map{elType,spacedim}(q_order, :gradients)
 		assembler_dict[elType] = Assembler(elType, dofs)
 	end
 
@@ -253,7 +254,7 @@ function applyFreeSlipInterface(system::GlobalSystem,
 			mesh::Mesh{spacedim}; penalty = 1000, q_order = 1) where spacedim
 	ndofs = system.ndofs
 
-	println("\tEnforcing free slip interface")
+	println("\tEnforcing FREE SLIP interface condition")
 	elTypes = keys(mesh.data[:element_groups]["interface_core"])
 
 	penalty = penalty*maximum(abs.(diag(system.K)))
@@ -380,17 +381,111 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 	##############################################
 end
 
+"""
+	updateStrain(strain::Array{Float64, 2},
+			     elem_id::Int64,
+			     node_ids::Array{Int64, 1},
+			     nodes::Array{Float64, 2},
+			     mapping::Map,
+			     displacement::Array{Float64, 2})
+Update `strain[:,elem_id]` with the corresponding 
+strain components.
+"""
+function updateStrain(strain::Array{Float64, 2},
+					  elem_id::Int64,
+					  node_ids::Array{Int64, 1},
+					  nodes::Array{Float64, 2},
+					  mapping::Map,
+					  displacement::Array{Float64, 2})
+	reinit(mapping, nodes)
+	Nnodes = length(mapping.master.basis.functions)
+
+	for q in eachindex(mapping.master.quadrature.points)
+		w = mapping.master.quadrature.weights[q]/sum(mapping.master.quadrature.weights)
+		for I in 1:Nnodes
+			strain[1, elem_id] += mapping[:gradients][I,q][1]*displacement[1,node_ids[I]]*w
+			strain[2, elem_id] += 0.5*( mapping[:gradients][I,q][2]*displacement[1,node_ids[I]] +
+										mapping[:gradients][I,q][q]*displacement[2,node_ids[I]] )*w
+			strain[3, elem_id] += mapping[:gradients][I,q][2]*displacement[2,node_ids[I]]*w
+		end
+	end
+end
+
+"""
+	computeElementAveragedStrain(mesh::Mesh{spacedim}, 
+									  displacement::Array{Float64, 2})
+Returns the element averaged strain in an array of dimension `(3, n_elements)`:
+	[e11 ...
+	 e12 ...
+	 e22 ...]
+`displacement` is expected to be a `(2,n_nodes)` dimension array with displacement
+components.
+"""
+function computeElementAveragedStrain(mesh::Mesh, 
+									  displacement::Array{Float64, 2};
+									  q_order = 1)
+	core_elTypes = keys(mesh.data[:element_groups]["core"])
+	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
+	elTypes = union(core_elTypes, shell_elTypes)
+
+	mapping_dict = Dict()
+	strain_dict = Dict()
+	
+	for elType in elTypes
+		mapping_dict[elType] = Map{elType,spacedim}(q_order, :gradients)
+		n_elements = size(mesh.data[:elements][elType])[2]
+		strain_dict[elType] = zeros(3, n_elements)
+	end
+
+	println("\tComputing element-averaged strain for CORE")
+
+	@time for elType in core_elTypes
+		mapping = mapping_dict[elType]
+		strain = strain_dict[elType]
+		for elem_id in mesh.data[:element_groups]["core"][elType]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			updateStrain(strain, elem_id, node_ids, nodes, mapping, displacement)
+		end
+	end
+	println("\tComputing element-averaged strain for SHELL")
+	@time for elType in shell_elTypes
+		mapping = mapping_dict[elType]
+		strain = strain_dict[elType]
+		for elem_id in mesh.data[:element_groups]["shell"][elType]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			updateStrain(strain, elem_id, node_ids, nodes, mapping, displacement)
+		end
+	end
+	return strain_dict
+end
 
 
 
 
+"""
+	computeElementAveragedStress(mesh::Mesh,
+			strain::Array{Float64, 2}, λc::Float64,
+			μc::Float64, λs::Float64, μs::Float64, θ0::Array{Float64, 2})
+Returns the element averaged stress in an array of dimension `(4,n_elements)`:
+	[s11 ...
+	 s12 ...
+	 s22 ...
+	 s33 ...]
+`strain` is expected to be of size `(3,n_elements)` with the
+element averaged strains.
+"""
+function computeElementAveragedStress(mesh::Mesh,
+			strain::Array{Float64, 2}, λc::Float64,
+			μc::Float64, λs::Float64, μs::Float64, θ0::Array{Float64, 2})
+	n_elements = size(strain)[2]
+	stress = zeros(4,n_elements)
 
-
-
-
-
-
-
+	for etype in keys(mesh.data[:element_groups]["core"])
+		
+	end
+end
 
 
 

@@ -245,15 +245,43 @@ end
 
 
 """
-	extract(system::GlobalSystem, dof::Int64, node_ids::Array{Int64, 1})
+	extract(system::GlobalSystem, 
+			dof::Int64, 
+			node_ids::Array{Int64, 1})
 Extract the solution values from `system.D` corresponding to the `dof` degree of freedom,
 and the node numbers corresponding to `node_ids`.
 """
-function extract(system::GlobalSystem, dof::Int64, node_ids::Array{Int64, 1})
+function extract(system::GlobalSystem, dof::Int64, 
+				 node_ids::Array{Int64, 1})
 	indices = [((I-1)*system.ndofs + dof) for I in node_ids]
-	vals = system.D[indices]
-	return vals
+	return system.D[indices]
 end
+
+"""
+	extract(system::GlobalSystem, dof::Int64,
+				 node_id::Int64)
+Extract the solution value from `system.D` corresponding
+to the `dof` degree-of-freedom and `node_id` node.
+"""
+function extract(system::GlobalSystem, dof::Int64,
+				 node_id::Int64)
+	index = (node_id - 1)*system.ndofs + dof
+	return system.D[index]
+end
+
+
+"""
+	extract(system::GlobalSystem, node_id::Int64)
+Extract the solution value from `system.D` corresponding 
+to all degrees of freedom of node `node_id`.
+"""
+function extract(system::GlobalSystem, node_id::Int64)
+	indices = [((node_id-1)*system.ndofs + I) for I in 1:system.ndofs]
+	return system.D[indices]
+end
+
+
+
 
 
 
