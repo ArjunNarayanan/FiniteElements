@@ -3,7 +3,8 @@ module transformation_2d
 using FiniteElements, TensorOperations, LinearAlgebra, SparseArrays
 
 export assembleSystem, duplicateInterfaceNodes, 
-		applyFreeSlipInterface, computeElementAveragedStrain
+		applyFreeSlipInterface, computeElementAveragedStrain,
+		computeElementAveragedStress
 
 const spacedim = 2
 const dofs = 2
@@ -103,10 +104,12 @@ end
 
 
 """
-	assembleSystem(mesh::Mesh{spacedim}, Ec, Es, θ0) where spacedim
-Assemble the `GlobalSystem` for the current `mesh`. `Ec` and
-`Es` are the 4th order elasticity tensors for the core and shell
-respectively. `θ0` is the volumetric transformation strain in the shell.
+	assembleSystem(mesh::Mesh{spacedim},
+					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
+Assemble the `GlobalSystem` for the current `mesh`. `λc, μc` are the Lame coefficients
+in the core, and `λs, μs` are the Lame coefficients in the shell. 
+`θ0` is the volumetric transformation strain in the shell. `q_order` is the quadrature
+order to be used.
 """
 function assembleSystem(mesh::Mesh{spacedim},
 					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
@@ -414,7 +417,8 @@ end
 """
 	computeElementAveragedStrain(mesh::Mesh{spacedim}, 
 									  displacement::Array{Float64, 2})
-Returns the element averaged strain in an array of dimension `(3, n_elements)`:
+Returns the element averaged strain in a dictionary whose keys are element types,
+and the associated values are arrays of size `(3, n_elements)` with entries:
 	[e11 ...
 	 e12 ...
 	 e22 ...]
@@ -463,28 +467,83 @@ end
 
 
 
+"""
+	updateStress(stress::SubArray, strain::SubArray, λ::Float64, μ::Float64, 
+					θ0::Float64)
+Update `stress` using a plane strain linear elastic constitutive model with `λ` and `μ` as 
+the usual Lame parameters. `θ0` is taken as the stress free volumetric transformation 
+strain. The strain components are assumed as follows:
+	strain[1] = ϵ[1,1]
+	strain[2] = ϵ[1,2]
+	strain[3] = ϵ[2,2]
+The stress components are:
+	stress[1] = σ[1,1]
+	stress[2] = σ[1,2]
+	stress[3] = σ[2,2]
+	stress[4] = σ[3,3]
+"""
+function updateStress(stress::SubArray, strain::SubArray, λ::Float64, μ::Float64,
+						θ0::Float64)
+	stress[1] = λ*(strain[1] + strain[3] - θ0) + 2μ*(strain[1] - θ0/3)
+	stress[2] = 2μ*strain[2]
+	stress[3] = λ*(strain[1] + strain[3] - θ0) + 2μ*(strain[3] - θ0/3)
+	stress[4] = λ*(strain[1] + strain[3] - θ0) + 2μ*(-θ0/3)
+end
+
 
 """
 	computeElementAveragedStress(mesh::Mesh,
-			strain::Array{Float64, 2}, λc::Float64,
+			strain_dict::Dict, λc::Float64,
 			μc::Float64, λs::Float64, μs::Float64, θ0::Array{Float64, 2})
-Returns the element averaged stress in an array of dimension `(4,n_elements)`:
+Returns the element averaged stress in a dictionary whose keys are element types. 
+The associated values are arrays of size `(4,n_elements)`, where `n_elements` is the 
+number of elements of that type, with entries:
 	[s11 ...
 	 s12 ...
 	 s22 ...
 	 s33 ...]
-`strain` is expected to be of size `(3,n_elements)` with the
-element averaged strains.
+`strain_dict` is expected to be a dict whose keys are element types. The value of each 
+key is an array of size `(3,n_elements)` where `n_elements` is the number of elements 
+of that type. The components of the array are expected to be:
+	[e11 ...
+	 e12 ...
+	 e22 ...]
 """
 function computeElementAveragedStress(mesh::Mesh,
-			strain::Array{Float64, 2}, λc::Float64,
-			μc::Float64, λs::Float64, μs::Float64, θ0::Array{Float64, 2})
-	n_elements = size(strain)[2]
-	stress = zeros(4,n_elements)
+			strain_dict::Dict, λc::Float64,
+			μc::Float64, λs::Float64, μs::Float64, θ0::Float64)
+	stress_dict = Dict()
 
-	for etype in keys(mesh.data[:element_groups]["core"])
-		
+	for etype in keys(strain_dict)
+		n_elements = size(strain_dict[etype])[2]
+		stress_dict[etype] = zeros(4, n_elements)
 	end
+
+	println("Computing element averaged stress for CORE")
+
+	@time for etype in keys(mesh.data[:element_groups]["core"])
+		strain = strain_dict[etype]
+		stress = stress_dict[etype]
+		for elem_id in mesh.data[:element_groups]["core"][etype]
+			sigma = view(stress, :, elem_id)
+			epsilon = view(strain, :, elem_id)
+			updateStress(sigma, epsilon, λc, μc, 0.0)
+		end
+	end
+
+	println("Computing element averaged stress for SHELL")
+
+	@time for etype in keys(mesh.data[:element_groups]["shell"])
+		strain = strain_dict[etype]
+		stress = stress_dict[etype]
+		for elem_id in mesh.data[:element_groups]["shell"][etype]
+			sigma = view(stress, :, elem_id)
+			epsilon = view(strain, :, elem_id)
+			updateStress(sigma, epsilon, λs, μs, θ0)
+		end
+	end
+
+	return stress_dict
 end
 
 
