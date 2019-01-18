@@ -9,5 +9,6 @@ using Reexport
 @reexport using reinitialize
 @reexport using boundary_conditions
 @reexport using solvers
+@reexport using postprocess
 
 end

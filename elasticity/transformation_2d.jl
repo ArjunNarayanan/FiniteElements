@@ -4,7 +4,8 @@ using FiniteElements, TensorOperations, LinearAlgebra, SparseArrays
 
 export assembleSystem, duplicateInterfaceNodes, 
 		applyFreeSlipInterface, computeElementAveragedStrain,
-		computeElementAveragedStress
+		computeElementAveragedStress, writeCellStrainComponents,
+		writeCellStressComponents
 
 const spacedim = 2
 const dofs = 2
@@ -464,6 +465,116 @@ function computeElementAveragedStrain(mesh::Mesh,
 	end
 	return strain_dict
 end
+
+
+function e11(strain::Array{Float64, 2})
+	return strain[1,:]
+end
+
+function e12(strain::Array{Float64, 2})
+	return strain[2,:]
+end
+
+function e22(strain::Array{Float64, 2})
+	return strain[3,:]
+end
+
+function volumetric(strain::Array{Float64, 2})
+	return e11(strain) + e22(strain)
+end
+
+function dev_e11(strain::Array{Float64, 2})
+	data = e11(strain) - 1/3*volumetric(strain)
+	return data
+end
+
+function dev_e22(strain::Array{Float64, 2})
+	data = e22(strain) - 1/3*volumetric(strain)
+	return data
+end
+
+"""
+	writeCellStrainComponents(output::Output, strain_dict::Array{Float64, 2},
+									args::Vararg{Symbol})
+Write the strain components specified in `args` into `output.vtkfile`. The data
+is treated as cell data. See `computeElementAveragedStrain` to compute `strain_dict`.
+# Supported arguments for `args`:
+- `:e11`
+- `:e12`
+- `:e22`
+- `:volumetric`
+- `:dev_e11` - [1,1] component of deviatoric strain
+- `:dev_e22` - [2,2] component of deviatoric strain
+"""
+function writeCellStrainComponents(output::Output, strain_dict::Dict,
+									args::Vararg{Symbol})
+	@assert !isempty(args) "Argument list cannot be empty"
+	strain = hcat([strain_dict[e] for e in output.elTypes]...)
+	for arg in args
+		data = eval(arg)(strain)
+		writeCellScalars(output, data, string(arg))
+	end
+end
+
+
+function s11(stress::Array{Float64, 2})
+	return stress[1,:]
+end
+
+function s12(stress::Array{Float64, 2})
+	return stress[2,:]
+end
+
+function s22(stress::Array{Float64, 2})
+	return stress[3,:]
+end
+
+function s33(stress::Array{Float64, 2})
+	return stress[4,:]
+end
+
+function pressure(stress::Array{Float64, 2})
+	return -1/3*(s11(stress) + s22(stress) + s33(stress))
+end
+
+function dev_s11(stress::Array{Float64, 2})
+	return s11(stress) + pressure(stress)
+end
+
+function dev_s22(stress::Array{Float64, 2})
+	return s22(stress) + pressure(stress)
+end
+
+function dev_s33(stress::Array{Float64, 2})
+	return s33(stress) + pressure(stress)
+end
+
+
+"""
+	writeCellStressComponents(output::Output, stress_dict::Dict, 
+									args::Vararg{Symbol})
+Write the stress components specified in `args` into `output.vtkfile`. The data
+is treated as cell data. See `computeElementAveragedStress` to compute `stress_dict`.
+# Supported arguments for `args`:
+- `:s11`
+- `:s12`
+- `:s22`
+- `:s33`
+- `:pressure`
+- `:dev_s11` - [1,1] component of deviatoric stress
+- `:dev_s22` - [2,2] component of deviatoric stress
+- `:dev_s33` - [3,3] component of deviatoric stress
+"""
+function writeCellStressComponents(output::Output, stress_dict::Dict, 
+									args::Vararg{Symbol})
+	@assert !isempty(args) "Argument list cannot be empty"
+	stress = hcat([stress_dict[e] for e in output.elTypes]...)
+	for arg in args
+		data = eval(arg)(stress)
+		writeCellScalars(output, data, string(arg))
+	end
+end
+
 
 
 
