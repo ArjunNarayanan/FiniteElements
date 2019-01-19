@@ -549,6 +549,14 @@ function dev_s33(stress::Array{Float64, 2})
 	return s33(stress) + pressure(stress)
 end
 
+function dev_s_norm(stress::Array{Float64, 2})
+	s_norm = sqrt.( dev_s11(stress).^2 +
+					2*s12(stress).^2 +
+					dev_s22(stress).^2 +
+					dev_s33(stress).^2 )
+	return s_norm
+end
+
 
 """
 	writeCellStressComponents(output::Output, stress_dict::Dict, 
@@ -564,6 +572,7 @@ is treated as cell data. See `computeElementAveragedStress` to compute `stress_d
 - `:dev_s11` - [1,1] component of deviatoric stress
 - `:dev_s22` - [2,2] component of deviatoric stress
 - `:dev_s33` - [3,3] component of deviatoric stress
+- `:dev_s_norm` - norm of the deviatoric stress
 """
 function writeCellStressComponents(output::Output, stress_dict::Dict, 
 									args::Vararg{Symbol})
