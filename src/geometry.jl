@@ -3,7 +3,7 @@ module geometry
 import Base: getindex
 
 # Export types and methods
-export Triangulation, Vertex, Line, Triangle, 
+export Triangulation, Vertex, Line, Triangle,
 		Quadrilateral, Mesh
 
 
@@ -12,7 +12,7 @@ export Triangulation, Vertex, Line, Triangle,
 
 """
 	Triangulation{N, dim}
-Abstract supertype for all `dim` dimensional geometric 
+Abstract supertype for all `dim` dimensional geometric
 triangulations space with `N` nodes.
 # Examples
 - 2 node `Line{2}` is a 1D linear line element.
@@ -51,7 +51,8 @@ struct Triangle{N} <: Triangulation{N, 2} end
 struct Quadrilateral{N} <: Triangulation{N, 2} end
 
 
-
+# The nameing convention here reflects the naming convention in
+# gmsh
 elementTypes = Dict("vertex" => Vertex,
 					"line" => Line{2},
 					"line3" => Line{3},
@@ -66,15 +67,15 @@ A mesh object in `spacedim` dimensional space.
 # Attributes
 - `data` : Dictionary with the following keys.
 
-- `:nodes` : An array of size `(spacedim, number_of_nodes)` giving the 
+- `:nodes` : An array of size `(spacedim, number_of_nodes)` giving the
 corresponding nodal coordinates.
-- `:elements` : A dictionary whose keys are `T::Type{<:Triangulation{N,dim}}`. 
-Querying with the element type gives an array of size 
+- `:elements` : A dictionary whose keys are `T::Type{<:Triangulation{N,dim}}`.
+Querying with the element type gives an array of size
 `(number_of_nodes_in_type, number_of_elements_of_type)`. This is the connectivity
 matrix for this element type.
-- `:node_groups` : A dictionary whose keys are strings `group_name` representing 
-the names of node groups in the mesh. Querying this dictionary with the 
-corresponding name gives an `Array{Int, 1}` with the node numbers of the nodes in 
+- `:node_groups` : A dictionary whose keys are strings `group_name` representing
+the names of node groups in the mesh. Querying this dictionary with the
+corresponding name gives an `Array{Int, 1}` with the node numbers of the nodes in
 this group.
 - `:element_groups` : A dictionary whose keys are strings `group_name` representing
 the names of element groups in the mesh. Querying this dictionary with the corresponding

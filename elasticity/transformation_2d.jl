@@ -2,7 +2,7 @@ module transformation_2d
 
 using FiniteElements, TensorOperations, LinearAlgebra, SparseArrays
 
-export assembleSystem, duplicateInterfaceNodes, 
+export assembleSystem, duplicateInterfaceNodes,
 		applyFreeSlipInterface, computeElementAveragedStrain,
 		computeElementAveragedStress, writeCellStrainComponents,
 		writeCellStressComponents
@@ -15,8 +15,8 @@ const dofs = 2
 """
 	getKIJ(KIJ, ∇ϕI, E, ∇ϕJ)
 Compute the contraction:
-	∇sym(ϕI) * E * ∇sym(ϕJ) 
-which is the `[I,J]` entry in the element stiffness 
+	∇sym(ϕI) * E * ∇sym(ϕJ)
+which is the `[I,J]` entry in the element stiffness
 matrix. Here `∇sym` refers to the symmetric gradient.
 """
 function getKIJ(KIJ, ∇ϕI, E, ∇ϕJ)
@@ -41,18 +41,18 @@ end
 
 
 """
-	assembleElementMatrix(nodes::Array{Float64, 2}, 
+	assembleElementMatrix(nodes::Array{Float64, 2},
 							   mapping::Map,
-							   assembler::Assembler, 
-							   KIJ::Array{Float64, 2}, 
+							   assembler::Assembler,
+							   KIJ::Array{Float64, 2},
 							   E::Array{Float64, 4})
 Compute the entries of the element matrix for the equilibrium equation
 of linear elasticity. Store the entries into `assembler.element_matrix`.
 """
-function assembleElementMatrix(nodes::Array{Float64, 2}, 
+function assembleElementMatrix(nodes::Array{Float64, 2},
 							   mapping::Map,
-							   assembler::Assembler, 
-							   KIJ::Array{Float64, 2}, 
+							   assembler::Assembler,
+							   KIJ::Array{Float64, 2},
 							   E::Array{Float64, 4})
 
 	reinit(assembler)
@@ -75,19 +75,19 @@ end
 
 
 """
-	assembleElementRHS(nodes::Array{Float64, 2}, 
+	assembleElementRHS(nodes::Array{Float64, 2},
 						    mapping::Map,
-							assembler::Assembler, 
-							FI::Array{Float64, 1}, λs::Float64, 
+							assembler::Assembler,
+							FI::Array{Float64, 1}, λs::Float64,
 							μs::Float64, ϵt::Array{Float64, 2})
 Compute the entries of the element RHS for the equilibrium equation
-of linear elasticity driven by transformation strain `ϵt`. 
+of linear elasticity driven by transformation strain `ϵt`.
 Store the entries into `assembler.element_rhs`.
 """
-function assembleElementRHS(nodes::Array{Float64, 2}, 
+function assembleElementRHS(nodes::Array{Float64, 2},
 						    mapping::Map,
-							assembler::Assembler, 
-							FI::Array{Float64, 1}, λs::Float64, 
+							assembler::Assembler,
+							FI::Array{Float64, 1}, λs::Float64,
 							μs::Float64, ϵt::Array{Float64, 2})
 	reinit(assembler)
 	reinit(mapping, nodes)
@@ -108,7 +108,7 @@ end
 	assembleSystem(mesh::Mesh{spacedim},
 					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
 Assemble the `GlobalSystem` for the current `mesh`. `λc, μc` are the Lame coefficients
-in the core, and `λs, μs` are the Lame coefficients in the shell. 
+in the core, and `λs, μs` are the Lame coefficients in the shell.
 `θ0` is the volumetric transformation strain in the shell. `q_order` is the quadrature
 order to be used.
 """
@@ -137,7 +137,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 
 	mapping_dict = Dict()
 	assembler_dict = Dict()
-	
+
 	for elType in elTypes
 		mapping_dict[elType] = Map{elType,spacedim}(q_order, :gradients)
 		assembler_dict[elType] = Assembler(elType, dofs)
@@ -159,8 +159,8 @@ function assembleSystem(mesh::Mesh{spacedim},
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Ec)
-			updateSystemMatrix(system_matrix, 
-				assembler.element_matrix, node_ids, 
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, node_ids,
 				assembler.ndofs)
 		end
 	end
@@ -175,7 +175,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Es)
-			updateSystemMatrix(system_matrix, 
+			updateSystemMatrix(system_matrix,
 					assembler.element_matrix, node_ids,
 					assembler.ndofs)
 			assembleElementRHS(nodes, mapping,
@@ -212,18 +212,18 @@ function getKIJ(KIJ::Array{Float64, 2}, N::Array{Float64, 1})
 end
 
 """
-	assembleElementMatrix(nodes::Array{Float64, 2}, 
-						  mapping::Map, 
-						  assembler::Assembler, 
+	assembleElementMatrix(nodes::Array{Float64, 2},
+						  mapping::Map,
+						  assembler::Assembler,
 						  KIJ::Array{Float64, 2},
 						  KIJ_temp::Array{Float64, 2},
 						  normal::Array{Float64, 1},
 						  penalty::Float64)
 Compute the entries of the element matrix for the free-slip interface
 condition. Store the entries into `assembler.element_matrix`."""
-function assembleElementMatrix(nodes::Array{Float64, 2}, 
-							   mapping::Map, 
-							   assembler::Assembler, 
+function assembleElementMatrix(nodes::Array{Float64, 2},
+							   mapping::Map,
+							   assembler::Assembler,
 							   KIJ::Array{Float64, 2},
 							   KIJ_temp::Array{Float64, 2},
 							   normal::Array{Float64, 1},
@@ -249,12 +249,12 @@ function assembleElementMatrix(nodes::Array{Float64, 2},
 end
 
 """
-	applyFreeSlipInterface(system::GlobalSystem, 
+	applyFreeSlipInterface(system::GlobalSystem,
 		mesh::Mesh; penalty = 1000)
 Modifies `system` to ensure that degrees-of-freedom normal
 to the interface have continuity via a penalty formulation.
 """
-function applyFreeSlipInterface(system::GlobalSystem, 
+function applyFreeSlipInterface(system::GlobalSystem,
 			mesh::Mesh{spacedim}; penalty = 1000, q_order = 1) where spacedim
 	ndofs = system.ndofs
 
@@ -279,13 +279,13 @@ function applyFreeSlipInterface(system::GlobalSystem,
 			c_n_ids = mesh.data[:elements][elType][:, c_el_id]
 			s_n_ids = mesh.data[:elements][elType][:, s_el_id]
 			nodes = mesh.data[:nodes][:, c_n_ids]
-			assembleElementMatrix(nodes, mapping, assembler, 
+			assembleElementMatrix(nodes, mapping, assembler,
 									KIJ, KIJ_temp, normal, penalty)
 			updateSystemMatrix(system_matrix,
 				assembler.element_matrix, c_n_ids,
 				ndofs)
 			updateSystemMatrix(system_matrix,
-				assembler.element_matrix, s_n_ids, 
+				assembler.element_matrix, s_n_ids,
 				ndofs)
 			for j in 1:length(assembler.element_matrix)
 				assembler.element_matrix[j] *= -1.0
@@ -321,7 +321,7 @@ end
 
 """
 	replaceNodeIDs(input_array, old_node_ids, new_node_ids)
-Replace all occurrences of node IDs in `old_node_ids` with their 
+Replace all occurrences of node IDs in `old_node_ids` with their
 corresponding values in `new_node_ids`.
 """
 function replaceNodeIDs!(input_array, old_node_ids, new_node_ids)
@@ -337,7 +337,7 @@ end
 """
 	duplicateInterfaceNodes(mesh::Mesh{2})
 Duplicate the nodes on the interface. Modify the connectivity
-of shell elements to refer to these duplicated nodes. Used to 
+of shell elements to refer to these duplicated nodes. Used to
 model an incoherent interface.
 """
 function duplicateInterfaceNodes(mesh::Mesh{2})
@@ -368,7 +368,7 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 	##############################################
 
 	##############################################
-	# Fourth: add the additional 1D elements for the new nodes 
+	# Fourth: add the additional 1D elements for the new nodes
 	# into mesh.data[:elements]
 	mesh.data[:element_groups]["interface_shell"] = Dict()
 	for key in keys(mesh.data[:element_groups]["interface_core"])
@@ -392,7 +392,7 @@ end
 			     nodes::Array{Float64, 2},
 			     mapping::Map,
 			     displacement::Array{Float64, 2})
-Update `strain[:,elem_id]` with the corresponding 
+Update `strain[:,elem_id]` with the corresponding
 strain components.
 """
 function updateStrain(strain::Array{Float64, 2},
@@ -416,7 +416,7 @@ function updateStrain(strain::Array{Float64, 2},
 end
 
 """
-	computeElementAveragedStrain(mesh::Mesh{spacedim}, 
+	computeElementAveragedStrain(mesh::Mesh{spacedim},
 									  displacement::Array{Float64, 2})
 Returns the element averaged strain in a dictionary whose keys are element types,
 and the associated values are arrays of size `(3, n_elements)` with entries:
@@ -426,7 +426,7 @@ and the associated values are arrays of size `(3, n_elements)` with entries:
 `displacement` is expected to be a `(2,n_nodes)` dimension array with displacement
 components.
 """
-function computeElementAveragedStrain(mesh::Mesh, 
+function computeElementAveragedStrain(mesh::Mesh,
 									  displacement::Array{Float64, 2};
 									  q_order = 1)
 	core_elTypes = keys(mesh.data[:element_groups]["core"])
@@ -435,7 +435,7 @@ function computeElementAveragedStrain(mesh::Mesh,
 
 	mapping_dict = Dict()
 	strain_dict = Dict()
-	
+
 	for elType in elTypes
 		mapping_dict[elType] = Map{elType,spacedim}(q_order, :gradients)
 		n_elements = size(mesh.data[:elements][elType])[2]
@@ -559,7 +559,7 @@ end
 
 
 """
-	writeCellStressComponents(output::Output, stress_dict::Dict, 
+	writeCellStressComponents(output::Output, stress_dict::Dict,
 									args::Vararg{Symbol})
 Write the stress components specified in `args` into `output.vtkfile`. The data
 is treated as cell data. See `computeElementAveragedStress` to compute `stress_dict`.
@@ -574,7 +574,7 @@ is treated as cell data. See `computeElementAveragedStress` to compute `stress_d
 - `:dev_s33` - [3,3] component of deviatoric stress
 - `:dev_s_norm` - norm of the deviatoric stress
 """
-function writeCellStressComponents(output::Output, stress_dict::Dict, 
+function writeCellStressComponents(output::Output, stress_dict::Dict,
 									args::Vararg{Symbol})
 	@assert !isempty(args) "Argument list cannot be empty"
 	stress = hcat([stress_dict[e] for e in output.elTypes]...)
@@ -588,10 +588,10 @@ end
 
 
 """
-	updateStress(stress::SubArray, strain::SubArray, λ::Float64, μ::Float64, 
+	updateStress(stress::SubArray, strain::SubArray, λ::Float64, μ::Float64,
 					θ0::Float64)
-Update `stress` using a plane strain linear elastic constitutive model with `λ` and `μ` as 
-the usual Lame parameters. `θ0` is taken as the stress free volumetric transformation 
+Update `stress` using a plane strain linear elastic constitutive model with `λ` and `μ` as
+the usual Lame parameters. `θ0` is taken as the stress free volumetric transformation
 strain. The strain components are assumed as follows:
 	strain[1] = ϵ[1,1]
 	strain[2] = ϵ[1,2]
@@ -615,15 +615,15 @@ end
 	computeElementAveragedStress(mesh::Mesh,
 			strain_dict::Dict, λc::Float64,
 			μc::Float64, λs::Float64, μs::Float64, θ0::Array{Float64, 2})
-Returns the element averaged stress in a dictionary whose keys are element types. 
-The associated values are arrays of size `(4,n_elements)`, where `n_elements` is the 
+Returns the element averaged stress in a dictionary whose keys are element types.
+The associated values are arrays of size `(4,n_elements)`, where `n_elements` is the
 number of elements of that type, with entries:
 	[s11 ...
 	 s12 ...
 	 s22 ...
 	 s33 ...]
-`strain_dict` is expected to be a dict whose keys are element types. The value of each 
-key is an array of size `(3,n_elements)` where `n_elements` is the number of elements 
+`strain_dict` is expected to be a dict whose keys are element types. The value of each
+key is an array of size `(3,n_elements)` where `n_elements` is the number of elements
 of that type. The components of the array are expected to be:
 	[e11 ...
 	 e12 ...

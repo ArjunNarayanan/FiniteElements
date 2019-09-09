@@ -1,6 +1,6 @@
 module solvers
 
-using assembly, IterativeSolvers
+using assembly
 
 export solveDirect
 
