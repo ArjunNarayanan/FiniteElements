@@ -24,7 +24,7 @@ end
 
 """
 	gradients(arg::Symbol, data::Dict, nq::Int64, dim::Int64, spacedim::Int64)
-Allocate static arrays to store the jacobian mapping, the inverse jacobian,
+Allocate arrays to store the jacobian mapping, the inverse jacobian,
 and the determinant of the jacobian.
 After this call, `data` is modified as:
 - `data[:jacobian]` - `nq` copies of zero arrays of dimension `(spacedim,dim)`
@@ -90,7 +90,7 @@ end
 
 """
 	Map{Triangulation, dim, spacedim}
-Defines a map on a `Triangulation` from `dim` dimensions into 
+Defines a map on a `Triangulation` from `dim` dimensions into
 `spacedim` dimensions. The map stores coordinates, and
 jacobian transformation information.
 # Keys
@@ -103,11 +103,11 @@ struct Map{Triangulation, dim, spacedim}
 	master::Master{T} where T
 	data::Dict{Symbol, Array}
 	args::NTuple{N, Symbol} where N
-	function Map{T,spacedim}(quad_order::Int64, 
+	function Map{T,spacedim}(quad_order::Int64,
 				args::Vararg{Symbol}) where {T <: Triangulation{N,dim}} where {N,dim,spacedim}
 		master_args = mapArgsToMasterArgs(args...)
 		master_elmt = Master(T, quad_order, master_args...)
-		
+
 		data = Dict{Symbol, Array}()
 		nq = length(master_elmt.quadrature.points)
 		for arg in args
@@ -154,19 +154,19 @@ This is just an empty function.
 """
 function values(mapping::Map{T,dim,spacedim},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
-	
+
 end
 
 
 
 
 """
-	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
+	invert(A::Array{Float64, 2}, B::Array{Float64, 2},
 	J::Float64, ::Type{<:Map{T, 2, 2}}) where T
 Compute the inverse map of the jacobian. For a 2X2 matrix, this is the regular
 matrix inverse.
 """
-function invert(A::Array{Float64, 2}, 
+function invert(A::Array{Float64, 2},
 				B::Array{Float64, 2}, J::Float64,
 	 			::Type{<:Map{T, 2, 2}}) where T
 	B[1,1] =  1.0/J*A[2,2]
@@ -176,12 +176,12 @@ function invert(A::Array{Float64, 2},
 end
 
 """
-	invert(A::Array{Float64, 2}, B::Array{Float64, 2}, 
+	invert(A::Array{Float64, 2}, B::Array{Float64, 2},
 	J::Float64, ::Type{<:Map{T, 2, 2}}) where T
 Compute the inverse map of the jacobian `A` and store it in `B`.
 For a 2X1 matrix, this is the element-wise reciprocal.
 """
-function invert(A::Array{Float64, 2}, 
+function invert(A::Array{Float64, 2},
 				B::Array{Float64, 2}, J::Float64,
 	 			::Type{<:Map{T, 1, 2}}) where T
 	B[1,1] = 1.0/A[1,1]
@@ -191,7 +191,7 @@ end
 
 """
 	determinant(A::Array{Float64, 2}, T::Type{<:Map{N,2,2}}) where N
-Compute the 'determinant' of the jacobian mapping. 
+Compute the 'determinant' of the jacobian mapping.
 For a 2X2 matrix, this is the regular matrix determinant.
 """
 function determinant(A::Array{Float64, 2}, ::Type{<:Map{T,2,2}}) where T
@@ -200,7 +200,7 @@ end
 
 """
 	determinant(A::Array{Float64, 2}, ::Type{<:Map{T,1,2}}) where T
-Compute the 'determinant' of the jacobian mapping. 
+Compute the 'determinant' of the jacobian mapping.
 For a 2X1 matrix, this is the L2 norm.
 """
 function determinant(A::Array{Float64, 2}, ::Type{<:Map{T,1,2}}) where T
@@ -224,10 +224,10 @@ function gradients(mapping::Map{T,dim,spacedim},
 	for q in 1:length(mapping.master.quadrature.points)
 		mapping.data[:jacobian][q] = sum([nodal_coordinates[:,I]*mapping.master[:gradients][I,q]' for I in 1:length(mapping.master.basis.functions)])
 		mapping.data[:determinant][q] = determinant(mapping.data[:jacobian][q], typeof(mapping))
-		invert(mapping.data[:jacobian][q], 
-			mapping.data[:inverse_jacobian][q], 
+		invert(mapping.data[:jacobian][q],
+			mapping.data[:inverse_jacobian][q],
 			mapping.data[:determinant][q], typeof(mapping))
-		mapping[:dx][q] = mapping[:determinant][q]*mapping.master.quadrature.weights[q] 
+		mapping[:dx][q] = mapping[:determinant][q]*mapping.master.quadrature.weights[q]
 		for I in 1:N
 			mapping[:gradients][I,q] = mapping[:inverse_jacobian][q]'*mapping.master[:gradients][I,q]
 		end

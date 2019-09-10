@@ -25,6 +25,14 @@ function getKIJ(KIJ, ∇ϕI, E, ∇ϕJ)
 	end
 end
 
+function getKIJ(KIJ, ∇ϕI, ∇ϕJ, λ, μ)
+	@tensor begin
+		KIJ[p,r] = 0.5*(δ[i,p]*∇ϕI[j] + δ[j,p]*∇ϕI[i])*
+						(λ*δ[i,j]*δ[k,l] + 2*μ*δ[i,k]*δ[j,l])*
+						0.5*(δ[k,r]*∇ϕJ[l] + δ[l,r]*∇ϕJ[k])
+	end
+end
+
 """
 	getFI(FI, ∇ϕI, λs, μs, ϵt)
 Compute the contraction:
@@ -41,19 +49,15 @@ end
 
 
 """
-	assembleElementMatrix(nodes::Array{Float64, 2},
-							   mapping::Map,
-							   assembler::Assembler,
-							   KIJ::Array{Float64, 2},
-							   E::Array{Float64, 4})
+	function assembleElementMatrix(nodes::Array{Float64, 2},
+		mapping::Map, assembler::Assembler, KIJ::Array{Float64, 2},
+		E::Array{Float64, 4})
 Compute the entries of the element matrix for the equilibrium equation
 of linear elasticity. Store the entries into `assembler.element_matrix`.
 """
 function assembleElementMatrix(nodes::Array{Float64, 2},
-							   mapping::Map,
-							   assembler::Assembler,
-							   KIJ::Array{Float64, 2},
-							   E::Array{Float64, 4})
+	mapping::Map, assembler::Assembler, KIJ::Array{Float64, 2},
+	E::Array{Float64, 4})
 
 	reinit(assembler)
 	reinit(mapping, nodes)
@@ -73,22 +77,52 @@ function assembleElementMatrix(nodes::Array{Float64, 2},
 	end
 end
 
+"""
+	function assembleElementMatrix(nodes::Array{Float64, 2},
+		mapping::Map, assembler::Assembler, KIJ::Array{Float64, 2}, λ::Function,
+		μ::Function)
+Compute the entries of the element matrix for the equilibrium equation of
+linear elasticity. Lame coefficients `λ(X), μ(X)` are computed at the
+coordinates `X`.
+"""
+function assembleElementMatrix(nodes::Array{Float64, 2},
+	mapping::Map, assembler::Assembler, KIJ::Array{Float64, 2}, λ::Function,
+	μ::Function)
+
+	reinit(assembler)
+	reinit(mapping, nodes)
+
+	Nnodes = length(mapping.master.basis.functions)
+
+	for q in eachindex(mapping.master.quadrature.points)
+		(pq, wq) = mapping.master.quadrature[q]
+		Xq = mapping[:coordinates][q]
+		λq = λ(Xq)
+		μq = μ(Xq)
+		for I in 1:Nnodes
+			∇ϕI = mapping[:gradients][I,q]
+			for J in 1:Nnodes
+				∇ϕJ = mapping[:gradients][J,q]
+				getKIJ(KIJ, ∇ϕI, ∇ϕJ, λq, μq)
+				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
+			end
+		end
+	end
+end
+
 
 """
-	assembleElementRHS(nodes::Array{Float64, 2},
-						    mapping::Map,
-							assembler::Assembler,
-							FI::Array{Float64, 1}, λs::Float64,
-							μs::Float64, ϵt::Array{Float64, 2})
+	function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
+		assembler::Assembler, FI::Array{Float64, 1}, λs::Float64, μs::Float64,
+		ϵt::Array{Float64, 2})
 Compute the entries of the element RHS for the equilibrium equation
 of linear elasticity driven by transformation strain `ϵt`.
 Store the entries into `assembler.element_rhs`.
 """
-function assembleElementRHS(nodes::Array{Float64, 2},
-						    mapping::Map,
-							assembler::Assembler,
-							FI::Array{Float64, 1}, λs::Float64,
-							μs::Float64, ϵt::Array{Float64, 2})
+function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
+	assembler::Assembler, FI::Array{Float64, 1}, λs::Float64, μs::Float64,
+	ϵt::Array{Float64, 2})
+
 	reinit(assembler)
 	reinit(mapping, nodes)
 	Nnodes = length(mapping.master.basis.functions)
@@ -102,18 +136,48 @@ function assembleElementRHS(nodes::Array{Float64, 2},
 	end
 end
 
+"""
+	function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
+		asembler::Assembler, FI::Array{Float64, 1}, λ::Function, μ::Function,
+		ϵt::Array{Float64, 2})
+Compute the entries of the element RHS for the equilibrium equation of linear
+elasticity driven by transformation strain `ϵt`. The Lame coefficients
+`λ(X),μ(X)` are computed at quadrature point `X`.
+"""
+function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
+	asembler::Assembler, FI::Array{Float64, 1}, λ::Function, μ::Function,
+	ϵt::Array{Float64, 2})
+
+	reinit(assembler)
+	reinit(mapping, nodes)
+	Nnodes = length(mapping.master.basis.functions)
+	for q in eachindex(mapping.master.quadrature.points)
+		(pq, wq) = mapping.master.quadrature[q]
+		Xq = mapping[:coordinates][q]
+		λq = λ(Xq)
+		μq = μ(Xq)
+		for I in 1:Nnodes
+			∇ϕI = mapping[:gradients][I,q]
+			getFI(FI, ∇ϕI, λq, μq, ϵt)
+			assembler.element_rhs[I] += FI*mapping[:dx][q]
+		end
+	end
+end
 
 
 """
-	assembleSystem(mesh::Mesh{spacedim},
-					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
+	function assembleSystem(mesh::Mesh{spacedim},
+		λc::Float64, μc::Float64, λs::Float64, μs::Float64, θ0::Float64;
+		q_order = 1) where spacedim
 Assemble the `GlobalSystem` for the current `mesh`. `λc, μc` are the Lame coefficients
 in the core, and `λs, μs` are the Lame coefficients in the shell.
 `θ0` is the volumetric transformation strain in the shell. `q_order` is the quadrature
 order to be used.
 """
 function assembleSystem(mesh::Mesh{spacedim},
-					λc, μc, λs, μs, θ0; q_order = 1) where spacedim
+	λc::Float64, μc::Float64, λs::Float64, μs::Float64, θ0::Float64;
+	q_order = 1) where spacedim
+
 	Ec = zeros(ntuple(x -> spacedim, 4)...)
 	Es = zeros(ntuple(x -> spacedim, 4)...)
 
@@ -155,7 +219,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
 		for elem_id in mesh.data[:element_groups]["core"][elType]
-			node_ids = mesh.data[:elements][elType][:,elem_id]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Ec)
@@ -171,7 +235,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
 		for elem_id in mesh.data[:element_groups]["shell"][elType]
-			node_ids = mesh.data[:elements][elType][:,elem_id]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
 						assembler, KIJ, Es)
@@ -188,6 +252,80 @@ function assembleSystem(mesh::Mesh{spacedim},
 	system = GlobalSystem(system_matrix, system_rhs, dofs)
 	return system
 end
+
+
+"""
+	function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
+		θ0::Float64; q_order = 1) where spacedim
+Assemble the `GlobalSystem` for the current `mesh`. The Lame coefficients
+`λ, μ` are given as functions over the domain. `θ0` is the volumetric
+transformation strain in the shell. `q_order` is the quadrature order to be
+used.
+"""
+function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
+	θ0::Float64; q_order = 1) where spacedim
+
+	ϵt = θ0/3*δ
+
+	core_elTypes = keys(mesh.data[:element_groups]["core"])
+	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
+	elTypes = union(core_elTypes, shell_elTypes)
+
+	total_ndofs = size(mesh.data[:nodes])[2]*dofs
+
+	println("----------SOLVING FE PROBLEM----------")
+	println("\tTotal Number of DOFs = ", total_ndofs)
+
+	mapping_dict = Dict()
+	assembler_dict = Dict()
+
+	for elType in elTypes
+		mapping_dict[elType] = Map{elType,spacedim}(q_order, :coordinates,
+			:gradients)
+		assembler_dict[elType] = Assembler(elType, dofs)
+	end
+
+	KIJ = zeros(dofs, dofs)
+	FI = zeros(dofs)
+
+	system_matrix = SystemMatrix()
+	system_rhs = SystemRHS()
+
+	println("\tAssembling CORE elements")
+
+	@time for elType in core_elTypes
+		mapping = mapping_dict[elType]
+		assembler = assembler_dict[elType]
+		for elem_id in mesh.data[:element_groups]["core"][elType]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			assembleElementMatrix(nodes, mapping, assembler, KIJ, λ, μ)
+			updateSystemMatrix(system_matrix, assembler.element_matrix,
+				node_ids, assembler.ndofs)
+		end
+	end
+
+	println("\tAssembling SHELL elements")
+
+	@time for elType in shell_elTypes
+		mapping = mapping_dict[elType]
+		assembler = assembler_dict[elType]
+		for elem_id in mesh.data[:element_groups]["shell"][elType]
+			node_ids = mesh.data[:elements][elType][:, elem_id]
+			nodes = mesh.data[:nodes][:, node_ids]
+			assembleElementMatrix(nodes, mapping, assembler, KIJ, λ, μ)
+			updateSystemMatrix(system_matrix, assembler.element_matrix,
+				node_ids, assembler.ndofs)
+			assembleElementRHS(nodes, mapping, assembler, FI, λ, μ, ϵt)
+			updateSystemRHS(system_rhs, assembler.element_rhs, node_ids,
+				assembler.ndofs)
+		end
+	end
+
+	system = GlobalSystem(system_matrix, system_rhs, dofs)
+	return system
+end
+
 
 """
 	getNormal(T::Array{Float64, 1}, N::Array{Float64, 1})

@@ -1,4 +1,4 @@
-using geometry, master, maps, reinitialize, 
+using geometry, master, maps, reinitialize,
 		LinearAlgebra, Test, quadrature
 
 tol = 1e-10
