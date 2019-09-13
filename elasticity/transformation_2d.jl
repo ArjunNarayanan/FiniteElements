@@ -145,7 +145,7 @@ elasticity driven by transformation strain `ϵt`. The Lame coefficients
 `λ(X),μ(X)` are computed at quadrature point `X`.
 """
 function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
-	asembler::Assembler, FI::Array{Float64, 1}, λ::Function, μ::Function,
+	assembler::Assembler, FI::Array{Float64, 1}, λ::Function, μ::Function,
 	ϵt::Array{Float64, 2})
 
 	reinit(assembler)
