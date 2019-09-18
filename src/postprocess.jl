@@ -16,7 +16,7 @@ geom_to_vtk = Dict(Vertex => VTKCellTypes.VTK_VERTEX,
 	Output
 Struct to store necessary information to generate output VTK files.
 # Attributes
-- `spacedim::Int64` - the spatial dimension of the mesh. 
+- `spacedim::Int64` - the spatial dimension of the mesh.
 - `vtkfile::WriteVTK.DatasetFile`
 - `elTypes::Array{DataType, 1}` - the element types to be used in postprocessing.
 # Constructor
@@ -26,32 +26,36 @@ struct Output
 	spacedim::Int64
 	vtkfile::WriteVTK.DatasetFile
 	elTypes::Array{DataType, 1}
-	function Output(filename::String, elTypes::Array{DataType, 1}, 
+	function Output(filename::String, elTypes::Array{DataType, 1},
 					mesh::Mesh{spacedim}) where spacedim
 		points = mesh.data[:nodes]
 		cells = Array{MeshCell{Array{Int64, 1}},1}()
+		mesh_etypes = Array{DataType, 1}()
 		for elType in elTypes
-			elements = mesh.data[:elements][elType]
-			for e in 1:size(elements)[2]
-				cell = MeshCell(geom_to_vtk[elType], elements[:,e])
-				push!(cells, cell)
+			if haskey(mesh.data[:elements], elType)
+				push!(mesh_etypes, elType)
+				elements = mesh.data[:elements][elType]
+				for e in 1:size(elements)[2]
+					cell = MeshCell(geom_to_vtk[elType], elements[:,e])
+					push!(cells, cell)
+				end
 			end
 		end
 		vtkfile = vtk_grid(filename, points, cells)
-		new(spacedim, vtkfile, elTypes)
+		new(spacedim, vtkfile, mesh_etypes)
 	end
 end
 
 
 """
-	writePointVectors(output::Output, 
+	writePointVectors(output::Output,
 					  vector::Array{Float64, 2},
 					  var_name::String)
 Add `vector` as point data into `output.vtkfile` with variable name `var_name`.
 `vector` must be of size `(dim,num_nodes)` where `dim` is either 2 or 3 and
 `num_nodes` is the number of nodes in the mesh used to initialize `output`.
 """
-function writePointVectors(output::Output, 
+function writePointVectors(output::Output,
 						   vector::Array{Float64, 2},
 						   var_name::String)
 	if size(vector)[1] == 2

@@ -380,7 +380,7 @@ function assembleElementMatrix(nodes::Array{Float64, 2},
 			for J in 1:Nnodes
 				ϕJ = mapping[:values][J,q]
 				KIJ_temp[:] = ϕI*ϕJ*KIJ[:]
-				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
+				assembler.element_matrix[I,J] += KIJ_temp*mapping[:dx][q]
 			end
 		end
 	end
