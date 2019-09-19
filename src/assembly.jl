@@ -100,7 +100,7 @@ number of degrees of freedom per node.
 function updateSystemMatrix(system_matrix::SystemMatrix,
 	element_matrix::Array{Array{Float64}, 2},
 	nodes::Array{Int64, 1}, ndofs::Int64)
-	
+
 	for I in 1:length(nodes)
 		node_I = nodes[I]
 		for J in 1:length(nodes)
