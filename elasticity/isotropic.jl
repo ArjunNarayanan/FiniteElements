@@ -55,7 +55,7 @@ end
 """
     bilinearForm(element_group::String, lambda::Function, mu::Function,
         mesh::Mesh{spacedim}, system_matrix::SystemMatrix; q_order = 1) where spacedim
-assemble the bilinear form for isotropic linear elasticity on the domain
+Assemble the bilinear form for isotropic linear elasticity on the domain
 specified by `element_group`. `lambda` and `mu` are the Lame coefficients
 for an isotropic material.
 """
@@ -84,7 +84,12 @@ function bilinearForm(element_group::String, lambda::Function, mu::Function,
 end
 
 
-
+"""
+	assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
+		assembler::Assembler, FI::Array{Float64, 1}, traction::Function)
+Assemble the right-hand-side vector of linear elasticity. `traction` is
+evaluated at each gauss quadrature point to obtain the traction force.
+"""
 function assembleElementRHS(nodes::Array{Float64, 2}, mapping::Map,
 	assembler::Assembler, FI::Array{Float64, 1}, traction::Function)
 
