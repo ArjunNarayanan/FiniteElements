@@ -424,16 +424,18 @@ function applyFreeSlipInterface(system::GlobalSystem,
 				ndofs)
 			updateSystemMatrix(system_matrix,
 				assembler.element_matrix, s_n_ids,
-				ndofs)
+				c_n_ids, ndofs)
+
 			for j in 1:length(assembler.element_matrix)
 				assembler.element_matrix[j] *= -1.0
 			end
-			updateSystemMatrix(system_matrix,
-				assembler.element_matrix, s_n_ids,
-				c_n_ids, ndofs)
+
 			updateSystemMatrix(system_matrix,
 				assembler.element_matrix, c_n_ids,
 				s_n_ids, ndofs)
+			updateSystemMatrix(system_matrix,
+				assembler.element_matrix, s_n_ids,
+				ndofs)
 		end
 	end
 	n_g_dof = size(system.K)
