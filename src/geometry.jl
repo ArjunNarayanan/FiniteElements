@@ -4,7 +4,7 @@ import Base: getindex
 
 # Export types and methods
 export Triangulation, Vertex, Line, Triangle,
-		Quadrilateral, Mesh
+		Quadrilateral, Mesh, getindex
 
 
 
@@ -93,7 +93,13 @@ struct Mesh{spacedim}
 end
 
 
-
+"""
+	getindex(m::Mesh, v::Symbol)
+Convenience shorthand for `m.data[v]`.
+"""
+function getindex(m::Mesh, v::Symbol)
+	return m.data[v]
+end
 
 
 # module geometry ends here

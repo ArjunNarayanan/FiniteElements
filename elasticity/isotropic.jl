@@ -1,6 +1,8 @@
 module isotropic
 
-using FiniteElements, TensorOperations
+using FiniteElements, TensorOperations, LinearAlgebra
+
+export bilinearForm, linearForm, applyTraction, applyBodyForce
 
 """
 	bilinearForm(KIJ::Array{Float64, 2}, ∇ϕI::Array{Float64, 1},
@@ -60,21 +62,24 @@ specified by `element_group`. `lambda` and `mu` are the Lame coefficients
 for an isotropic material. The result is updated into the `system_matrix`.
 """
 function bilinearForm(lambda::Function, mu::Function, element_group::String,
-    mesh::Mesh{spacedim}, system_matrix::SystemMatrix; q_order = 1) where spacedim
+    mesh::Mesh{spacedim}, q_order::Int64,
+	system_matrix::SystemMatrix) where spacedim
 
 	kronecker_delta = diagm(0 => ones(spacedim))
-    elTypes = keys(mesh.data[:element_groups][element_group])
+    elTypes = keys(mesh[:element_groups][element_group])
 
     KIJ = zeros(spacedim,spacedim)
     FI = zeros(spacedim)
 
-    for elType in elTypes
-        mapping = Map{elType,spacedim}(q_order, :gradients)
+	println("Assembling bilinear form on "*element_group)
+
+    @time for elType in elTypes
+        mapping = Map{elType,spacedim}(q_order, :gradients, :coordinates)
         assembler = Assembler(elType, spacedim)
 
-        for elem_id in mesh.data[:element_groups][element_group][elType]
-            node_ids = mesh.data[:elements][elType][:, elem_id]
-            nodes = mesh.data[:nodes][:, node_ids]
+        for elem_id in mesh[:element_groups][element_group][elType]
+            node_ids = mesh[:elements][elType][:, elem_id]
+            nodes = mesh[:nodes][:, node_ids]
             bilinearForm(nodes, mapping, assembler, KIJ, lambda, mu,
 				kronecker_delta)
 			updateSystemMatrix(system_matrix, assembler.element_matrix,
@@ -122,16 +127,19 @@ assemble the linear form (i.e. right-hand-side) of linear elasticity.
 function linearForm(force::Function, element_group::String,
 	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
 
-	elTypes = keys(mesh.data[:element_groups][element_group])
+	println("Assembling linear form on "*element_group)
+
+	elTypes = keys(mesh[:element_groups][element_group])
 	FI = zeros(spacedim)
 
-	for elType in elTypes
-		mapping = Map{elType,spacedim}(q_order, :values, :gradients)
+	@time for elType in elTypes
+		mapping = Map{elType,spacedim}(q_order, :values, :gradients,
+			:coordinates)
 		assembler = Assembler(elType, spacedim)
-		for elem_id in mesh.data[:element_groups][element_group][elType]
-			node_ids = mesh.data[:elements][elType][:, elem_id]
-			nodes = mesh.data[:nodes][:, node_ids]
-			linearForm(traction, nodes, mapping, assembler, FI)
+		for elem_id in mesh[:element_groups][element_group][elType]
+			node_ids = mesh[:elements][elType][:, elem_id]
+			nodes = mesh[:nodes][:, node_ids]
+			linearForm(force, nodes, mapping, assembler, FI)
 			updateSystemRHS(system_rhs, assembler.element_rhs, node_ids,
 				assembler.ndofs)
 		end
@@ -146,7 +154,7 @@ specified by `element_group`. This is just a convenience function to
 distinguish from a "body force" type of load.
 """
 function applyTraction(traction::Function, element_group::String,
-	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS)
+	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
 
 	linearForm(traction, element_group, mesh, q_order, system_rhs)
 end
@@ -159,7 +167,7 @@ specified by `element_group`. In linear elasticity, the body force takes on a
 negative sign when applied to the right-hand-side vector of the linear system.
 """
 function applyBodyForce(body_force::Function, element_group::String,
-	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS)
+	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
 
 	linearForm(x -> -body_force(x), element_group, mesh, q_order, system_rhs)
 end
