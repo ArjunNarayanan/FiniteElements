@@ -1,5 +1,6 @@
+using FileIO, WriteVTK, LinearAlgebra
 using Revise
-using FiniteElements, isotropic, FileIO, LinearAlgebra
+using FiniteElements, IsotropicElasticity
 
 function body_force(x::AbstractArray)
     b = wave_number^2*(lambda + 2mu)*[sin(wave_number*x[1]),
@@ -7,7 +8,7 @@ function body_force(x::AbstractArray)
     return b
 end
 
-function displacement(x::AbstractArray)
+function analyticalDisplacement(x::AbstractArray)
 	return [sin(wave_number*x[1]),
 			cos(wave_number*x[2])]
 end
@@ -17,7 +18,7 @@ function getDirichletData(mesh::Mesh, node_group::String)
 	dofs = [[1,2] for i in node_ids]
 	vals = [[0.0,0.0] for i in node_ids]
 	for (idx, id) in enumerate(node_ids)
-		vals[idx] = displacement(mesh[:nodes][:,id])
+		vals[idx] = analyticalDisplacement(mesh[:nodes][:,id])
 	end
 	return node_ids, dofs, vals
 end
@@ -47,17 +48,28 @@ function analyticalSolution(mesh::Mesh)
 	nnodes = size(mesh[:nodes])[2]
 	u = zeros(2, nnodes)
 	for node_id in 1:nnodes
-		u[:,node_id] = displacement(mesh[:nodes][:,node_id])
+		u[:,node_id] = analyticalDisplacement(mesh[:nodes][:,node_id])
 	end
 	return u
 end
 
+function solutionError(displacement::AbstractArray,
+	analytical_solution::AbstractArray)
+
+	err = 0.0
+	for i in 1:size(displacement)[2]
+		difference = displacement[:,i] - analytical_solution[:,i]
+		err += norm(difference)/norm(analytical_solution[:,i])
+	end
+	return err
+end
+
 const lambda = 10.0
 const mu = 5.0
-const wave_number = 2.0
+const wave_number = 5.0
 const dofs = 2
 q_order = 2
-filename = "Quad_10.jld2"
+filename = "Quad_100.jld2"
 folder = "test_elasticity/mesh/Quad/"
 inputfile = folder*filename
 mesh = load(inputfile)["mesh"]
@@ -70,4 +82,21 @@ system = GlobalSystem(system_matrix, system_rhs, dofs)
 applyDisplacementBCs(system, mesh)
 solveDirect(system)
 
+displacement = reshape(system.D, 2, :)
 analytical_solution = analyticalSolution(mesh)
+outfolder = "test_elasticity/Output/"
+try
+	mkpath(outfolder)
+catch
+	error("Failed to create output folder")
+end
+
+filename = split(filename, ".")[1]
+outfilename = outfolder*filename
+output = Output(outfilename, [Triangle{3}, Quadrilateral{4}], mesh)
+writePointVectors(output, displacement, "displacement")
+writePointVectors(output, analytical_solution, "analytical")
+outfiles = vtk_save(output.vtkfile)
+
+err = solutionError(displacement, analytical_solution)
+println("Error = ", err)

@@ -1,4 +1,4 @@
-module isotropic
+module IsotropicElasticity
 
 using FiniteElements, TensorOperations, LinearAlgebra
 
@@ -169,7 +169,7 @@ negative sign when applied to the right-hand-side vector of the linear system.
 function applyBodyForce(body_force::Function, element_group::String,
 	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
 
-	linearForm(x -> -body_force(x), element_group, mesh, q_order, system_rhs)
+	linearForm(x -> body_force(x), element_group, mesh, q_order, system_rhs)
 end
 
 # module isotropic ends here
