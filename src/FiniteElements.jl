@@ -3,6 +3,7 @@ using Reexport
 
 @reexport using geometry
 @reexport using quadrature
+@reexport using basis
 @reexport using master
 @reexport using maps
 @reexport using assembly

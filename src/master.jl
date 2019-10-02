@@ -13,7 +13,7 @@ export Basis, Master, getindex
 """
 	values(basis::Basis, quadrature::Quadrature)
 Compute the value of each `basis.functions` at each `quadrature.points`
-and store it in an array of size 
+and store it in an array of size
 `(n_basis_functions, n_quadrature_points)`.
 Return array.
 """
@@ -53,7 +53,7 @@ end
 
 """
 	Master{T <: Triangulation}
-A type that stores all required basis function information like values, 
+A type that stores all required basis function information like values,
 gradients, etc.
 # Attributes
 	basis::Basis{T}
@@ -75,7 +75,7 @@ struct Master{T <: Triangulation}
 	basis::Basis{T}
 	quadrature::Quadrature{P} where {P >: T}
 	data::Dict{Symbol, Array}
-	function Master(T::Type{<:Triangulation}, order::Int64, 
+	function Master(T::Type{<:Triangulation}, order::Int64,
 		args::Vararg{Symbol})
 		basis = Basis(T)
 		quadrature = Quadrature(T, order)
@@ -106,7 +106,7 @@ end
 
 """
 	getindex(m::Master, v::Int)
-Convenience shorthand for `m.data[v]`. 
+Convenience shorthand for `m.data[v]`.
 """
 function getindex(m::Master, v::Symbol)
 	return m.data[v]

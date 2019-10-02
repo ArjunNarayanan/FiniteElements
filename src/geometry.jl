@@ -27,22 +27,17 @@ abstract type Triangulation{N, dim} end
 """
 struct Vertex <: Triangulation{1, 0} end
 
-
-
 """
 	Line{N} <: Triangulation{N, 1}
 1D line element with `N` nodes.
 """
 struct Line{N} <: Triangulation{N, 1} end
 
-
 """
 	Triangle{N} <: Triangulation{N, 2}
 2D triangular element with `N` nodes.
 """
 struct Triangle{N} <: Triangulation{N, 2} end
-
-
 
 """
 	Quadrilateral{N} <: Triangulation{N, 2}

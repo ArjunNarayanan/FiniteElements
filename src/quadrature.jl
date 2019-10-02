@@ -4,7 +4,7 @@ using geometry, basis, ForwardDiff, LinearAlgebra
 # Import base operators to be overloaded
 import Base: *, getindex, eachindex
 
-export Quadrature, Integrate
+export Quadrature, integrate
 
 
 
@@ -135,11 +135,11 @@ struct Quadrature{Triangulation, order}
 	end
 """
 	Quadrature(::Type{<:Triangle{3}}, dim::Int64, order::Int64)
-construct a quadrature of `dim = 1 < 2`. Quadrature is defined on only 
+construct a quadrature of `dim = 1 < 2`. Quadrature is defined on only
 one edge of the `Triangle`, i.e. edge 1-2. Ensure that spatial elements
 respect this correspondence while integrating.
 """
-	function Quadrature(T::Type{<:Triangle{3}}, 
+	function Quadrature(T::Type{<:Triangle{3}},
 						dim::Int64, order::Int64)
 		@assert dim == 1 "Expected dim = 1, got dim = "*string(dim)
 		quad1D = Quadrature(Line{2}, order)
@@ -207,10 +207,10 @@ end
 """
 	Integrate(f::Function, q::Quadrature)
 Integrate the function `f` using the quadrature rule `q`.
-`f` is a function of ß`Point{spacedim}` where `spacedim` is 
+`f` is a function of ß`Point{spacedim}` where `spacedim` is
 consistent with the type of points in `q`.
 """
-function Integrate(f::Function, q::Quadrature)
+function integrate(f::Function, q::Quadrature)
 	I = 0.0
 	for i in eachindex(q.points)
 		I += f(q.points[i])*q.weights[i]

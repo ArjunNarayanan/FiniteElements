@@ -19,7 +19,7 @@ end
 tol = 1e-10
 
 
-I1 = Integrate(P1, QLine1)
+I1 = integrate(P1, QLine1)
 @test abs(I1 - 10.0) < tol
 
 # 2-point rule should be able to integrate cubics
@@ -28,7 +28,7 @@ function P3(p::Array{Float64, 1})
 	return 4x^3 - 3x^2 + 7x +2
 end
 
-I2 = Integrate(P3, QLine2)
+I2 = integrate(P3, QLine2)
 @test abs(I2 - 2.0) < tol
 
 
@@ -38,7 +38,7 @@ function P5(p::Array{Float64, 1})
 	return 12x^5 - 10x^4 + 5x^3 + 6x^2 + 11x
 end
 
-I3 = Integrate(P5, QLine3)
+I3 = integrate(P5, QLine3)
 @test abs(I3 - 0.0) < tol
 
 # 4-point rule should integrate 7th order polynomial
@@ -47,7 +47,7 @@ function P7(p::Array{Float64, 1})
 	return 32x^7 + 21x^6 + 18x^5 - 20x^4 - 24x^3 - 12x^2 + x
 end
 
-I4 = Integrate(P7, QLine4)
+I4 = integrate(P7, QLine4)
 @test abs(I4 - (-10.0)) < tol
 
 # 5-point rule should integrate 9th order polynomial
@@ -56,7 +56,7 @@ function P9(p::Array{Float64, 1})
 	return 40x^9 - 45x^8 + 32x^7 + 21x^6 + 18x^5 - 20x^4 - 24x^3 - 12x^2 + x
 end
 
-I5 = Integrate(P9, QLine5)
+I5 = integrate(P9, QLine5)
 @test abs(I5 - (-20.0)) < tol
 ###############################################################
 
@@ -78,7 +78,7 @@ function P11(p::Array{Float64, 1})
 	return p[1] + p[2]
 end
 
-I1 = Integrate(P11, QTriangle1)
+I1 = integrate(P11, QTriangle1)
 @test abs(I1 - 1/3) < tol
 
 # 3 point rule over triangles should integrate
@@ -88,17 +88,17 @@ function P22(p::Array{Float64, 1})
 	return x*y + x^2 + y^2
 end
 
-I2 = Integrate(P22, QTriangle2)
+I2 = integrate(P22, QTriangle2)
 @test abs(I2 - 5/24) < tol
 
-# 4 point rule should integrate 
+# 4 point rule should integrate
 # x^3, y^3, x^2y, xy^2
 function P33(p::Array{Float64, 1})
 	x,y = p[1], p[2]
 	return x^3 + y^3 + x*y^2 + x^2*y
 end
 
-I3 = Integrate(P33, QTriangle3)
+I3 = integrate(P33, QTriangle3)
 @test abs(I3 - 2/15) < tol
 ###############################################################
 
@@ -107,27 +107,27 @@ I3 = Integrate(P33, QTriangle3)
 # Check 1D quadrature on triangles
 
 quad1D = Quadrature(Triangle{3}, 1, 1)
-I1 = Integrate(P1, quad1D)
+I1 = integrate(P1, quad1D)
 
 @test abs(I1 - 6.5) < tol
 
 quad1D = Quadrature(Triangle{3}, 1, 2)
-I2 = Integrate(P3, quad1D)
+I2 = integrate(P3, quad1D)
 
 @test abs(I2 - 5.5) < tol
 
 quad1D = Quadrature(Triangle{3}, 1, 3)
-I3 = Integrate(P5, quad1D)
+I3 = integrate(P5, quad1D)
 
 @test abs(I3 - 35/4) < tol
 
 quad1D = Quadrature(Triangle{3}, 1, 4)
-I4 = Integrate(P7, quad1D)
+I4 = integrate(P7, quad1D)
 
 @test abs(I4 - - 3.5) < tol
 
 quad1D = Quadrature(Triangle{3}, 1, 5)
-I5 = Integrate(P9, quad1D)
+I5 = integrate(P9, quad1D)
 
 @test abs(I5 - - 4.5) < tol
 
@@ -153,7 +153,7 @@ QQuad5 = Quadrature(Quadrilateral, 5)
 function PQ11(p::Array{Float64, 1})
 	return p[1] + p[2] + 5.0
 end
-I1 = Integrate(PQ11, QQuad1)
+I1 = integrate(PQ11, QQuad1)
 
 @test abs(I1 - 20.0) < tol
 
@@ -163,7 +163,7 @@ function PQ22(p::Array{Float64, 1})
 	return x^3 + y^3 + 3x^2*y + 3*x*y^2
 end
 
-I2 = Integrate(PQ22, QQuad2)
+I2 = integrate(PQ22, QQuad2)
 
 @test abs(I2 - 0.0) < tol
 
@@ -173,7 +173,7 @@ function PQ33(p::Array{Float64, 1})
 	return x^5 + y^5 + x^4*y + x*y^4 + 9*x^2*y^2
 end
 
-I3 = Integrate(PQ33, QQuad3)
+I3 = integrate(PQ33, QQuad3)
 @test abs(I3 - 4.0) < tol
 
 
@@ -183,7 +183,7 @@ function PQ44(p::Array{Float64, 1})
 	return 15*x^4*y^2 + 15*x^2*y^4 + 9*x^2*y^2 + x^7 + y*7 + x^6*y + x*y^6
 end
 
-I4 = Integrate(PQ44, QQuad4)
+I4 = integrate(PQ44, QQuad4)
 @test abs(I4 - 12.0) < tol
 
 # 5th order rule should integrate order 9
@@ -192,7 +192,7 @@ function PQ55(p::Array{Float64, 1})
 	return x^9 + y^9 + 25*x^4*y^4 + 15*x^4*y^2 + 15*x^2*y^4
 end
 
-I5 = Integrate(PQ55, QQuad5)
+I5 = integrate(PQ55, QQuad5)
 @test abs(I5 - 12.0) < tol
 ###############################################################
 

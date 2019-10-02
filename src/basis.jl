@@ -2,7 +2,31 @@ module basis
 
 using geometry
 
-export Basis
+export Basis, diameter
+
+"""
+	diameter(::Type{<:Triangle})
+diameter of the reference `Triangle` element.
+"""
+function diameter(::Type{<:Triangle})
+    return sqrt(2)
+end
+
+"""
+	diameter(::Type{<:Quadrilateral})
+diameter of the reference `Quadrilateral` element.
+"""
+function diameter(::Type{<:Quadrilateral})
+    return 2*sqrt(2)
+end
+
+"""
+	diameter(::Type{<:Line})
+diameter of the reference `Line` element.
+"""
+function diameter(::Type{<:Line})
+    return 2.0
+end
 
 """
 	Basis{T <: Triangulation}
@@ -12,7 +36,7 @@ a particular triangulation.
 - `support_points::NTuple{N, Array{Float64, 1}} where N`
 The `N` support points of the basis functions
 - `functions::NTuple{N, Function} where N`
-The `N` functions associated with this triangulation 
+The `N` functions associated with this triangulation
 """
 struct Basis{Triangulation}
 	support_points::NTuple{N, Array{Float64, 1}} where N
