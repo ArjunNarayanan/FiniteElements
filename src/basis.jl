@@ -1,8 +1,32 @@
 module basis
 
-using geometry
+using geometry, ForwardDiff
 
-export Basis, diameter
+export Basis, diameter, centroid, interpolate, gradient
+
+"""
+	diameter(::Type{<:Line})
+diameter of the reference `Line` element.
+"""
+function diameter(::Type{<:Line})
+    return 2.0
+end
+
+"""
+	centroid(::Type{<:Line})
+centroid of the reference `Line` element.
+"""
+function centroid(::Type{<:Line})
+	return [0.0]
+end
+
+"""
+	centroid(::Type{<:Triangle})
+centroid of the reference `Triangle` element.
+"""
+function centroid(::Type{<:Triangle})
+	return [1.0/3.0, 1.0/3.0]
+end
 
 """
 	diameter(::Type{<:Triangle})
@@ -13,6 +37,14 @@ function diameter(::Type{<:Triangle})
 end
 
 """
+	centroid(::Type{<:Quadrilateral})
+centroid of the reference `Quadrilateral` element.
+"""
+function centroid(::Type{<:Quadrilateral})
+	return [0.0, 0.0]
+end
+
+"""
 	diameter(::Type{<:Quadrilateral})
 diameter of the reference `Quadrilateral` element.
 """
@@ -20,13 +52,6 @@ function diameter(::Type{<:Quadrilateral})
     return 2*sqrt(2)
 end
 
-"""
-	diameter(::Type{<:Line})
-diameter of the reference `Line` element.
-"""
-function diameter(::Type{<:Line})
-    return 2.0
-end
 
 """
 	Basis{T <: Triangulation}
@@ -122,22 +147,57 @@ struct Basis{Triangulation}
 	end
 end
 
+"""
+    interpolate(values::Array{Float64, 1}, xi::Array{Float64, 1},
+        basis::Basis)
+interpolate the nodal `values` on the master element at the coordinate `xi`
+using the `basis`.
+"""
+function interpolate(values::Array{Float64, 1}, xi::Array{Float64, 1},
+    basis::Basis)
 
+    val = 0.0
+    for I in eachindex(basis.functions)
+        val += values[I]*basis.functions[I](xi)
+    end
+    return val
+end
 
+"""
+    interpolate(values::Array{Float64, 2}, xi::Array{Float64, 1},
+        basis::Basis)
+interpolate the nodal `values` (treating each column as a nodal value),
+on the master element at the coordinate `xi` using the `basis`.
+A common application is to interpolate the point `xi` from the reference
+element to the element in physical space. In this case, `values` are the
+nodal coordinates of the element.
+"""
+function interpolate(values::Array{Float64, 2}, xi::Array{Float64, 1},
+    basis::Basis)
 
+    val = zeros(size(values)[1])
+    for I in eachindex(basis.functions)
+        val += values[:,I]*basis.functions[I](xi)
+    end
+    return val
+end
 
+"""
+    gradient(values::Array{Float64, 1}, xi::Array{Float64, 1},
+        basis::Basis)
+interpolate the gradient of the nodal `values` on the master element
+at the coordinate `xi` using the `basis`.
+"""
+function gradient(values::Array{Float64, 1}, xi::Array{Float64, 1},
+    basis::Basis)
 
-
-
-
-
-
-
-
-
-
-
-
+    val = similar(xi)
+    fill!(val, 0.0)
+    for I in eachindex(basis.functions)
+        val += values[I]*ForwardDiff.gradient(basis.functions[I], xi)
+    end
+    return val
+end
 
 
 # module basis ends here
