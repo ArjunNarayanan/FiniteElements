@@ -2,6 +2,8 @@ module resolve_interface
 
 using basis, reinitialize_levelset
 
+export interfaceEdgeIntersection
+
 """
     interfaceEdgeIntersection(distance::Array{Float64, 1},
         fbasis::Basis{T}) where T
