@@ -22,7 +22,8 @@ end
     project(x0::Array{Float64, 1}, values::Array{Float64, 1},
         basis::Basis{T}; tol = 1e-3, maxiter = 100) where T
 orthogonally project the point `x0` onto the zero level set of the
-interpolation of `values` by `basis` using Newton iterations.
+interpolation of `values` by `basis` using Newton iterations. The
+point `x0` is ASSUMED TO BE IN THE REFERENCE ELEMENT COORDINATES.
 """
 function project(x0::Array{Float64, 1}, values::Array{Float64, 1},
     basis::Basis{T}; tol = 1e-3, maxiter = 100) where T
@@ -45,6 +46,52 @@ function project(x0::Array{Float64, 1}, values::Array{Float64, 1},
         return xnext
     end
 end
+
+"""
+    stepProjection(xi::Array{Float64, 1}, values::Array{Float64, 1},
+        basis::Basis)
+perform one step of Newton interation in projecting `xi` onto the
+zero level set of the interpolation of `values` by `basis`.
+"""
+function stepProjection(xi::Array{Float64, 1}, values::Array{Float64, 1},
+    direction::Array{Float64, 1}, basis::Basis)
+
+    phi = interpolate(values, xi, basis)
+    gradphi = gradient(values, xi, basis)
+    return xi - phi/(gradphi'*direction)*direction
+end
+
+"""
+    project(x0::Array{Float64, 1}, values::Array{Float64, 1},
+        direction::Array{Float64, 1}, basis::Basis{T};
+        tol = 1e-3, maxiter = 100) where T
+project the point `x0` onto the zero level set of the interpolation of `values`
+along `direction` by `basis` using Newton iterations. The point `x0` is ASSUMED
+TO BE IN THE REFERENCE ELEMENT COORDINATES.
+"""
+function project(x0::Array{Float64, 1}, values::Array{Float64, 1},
+    direction::Array{Float64, 1}, basis::Basis{T}; tol = 1e-3,
+    maxiter = 100) where T
+
+    elDia = diameter(T)
+    xprev = copy(x0)
+    xnext = stepProjection(xprev, values, direction, basis)
+    err = norm(xnext - xprev)/elDia
+    count = 1
+    while err > tol && count <= maxiter
+        xprev = xnext
+        xnext = stepProjection(xprev, values, direction, basis)
+        err = norm(xnext - xprev)/elDia
+        count += 1
+    end
+    if count > maxiter
+        error("Newton iteration failed to converge: $count iterations,
+            $err relative error")
+    else
+        return xnext
+    end
+end
+
 
 """
     hasInterface(values::Array{Float64, 1})

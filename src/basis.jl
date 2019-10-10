@@ -2,7 +2,7 @@ module basis
 
 using geometry, ForwardDiff
 
-export Basis, diameter, centroid, interpolate, gradient
+export Basis, diameter, centroid, interpolate, gradient, neighborNodes
 
 """
 	diameter(::Type{<:Line})
@@ -50,6 +50,15 @@ diameter of the reference `Quadrilateral` element.
 """
 function diameter(::Type{<:Quadrilateral})
     return 2*sqrt(2)
+end
+
+"""
+	neighborNodes(::Type{<:Quadrilateral{4}})
+return the node IDs of the neighboring nodes on the element.
+"""
+function neighborNodes(::Type{<:Quadrilateral{4}})
+	return  [2  3  4  1
+             4  1  2  3]
 end
 
 
