@@ -91,7 +91,6 @@ function assembleElementMatrix(nodes::Array{Float64, 2},
 
 	reinit(assembler)
 	reinit(mapping, nodes)
-
 	Nnodes = length(mapping.master.basis.functions)
 
 	for q in eachindex(mapping.master.quadrature.points)
