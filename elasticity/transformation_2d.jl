@@ -43,7 +43,7 @@ vector. Here `∇sym` refers to the symmetrized gradient.
 function getFI(FI, ∇ϕI, λs, μs, ϵt)
 	θ0 = 3/2*tr(ϵt)
 	@tensor begin
-		FI[p] = 0.5*(δ[i,p]*∇ϕI[j] + δ[j,p]*∇ϕI[i])*(λs*θ0*δ[i,j] + 2μs*ϵt[i,j])
+		FI[p] = 0.5*(δ[i,p]*∇ϕI[j] + δ[j,p]*∇ϕI[i])*((λs*θ0)*δ[i,j] + 2μs*ϵt[i,j])
 	end
 end
 

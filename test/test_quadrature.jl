@@ -106,30 +106,30 @@ I3 = integrate(P33, QTriangle3)
 ###############################################################
 # Check 1D quadrature on triangles
 
-quad1D = Quadrature(Triangle{3}, 1, 1)
-I1 = integrate(P1, quad1D)
-
-@test abs(I1 - 6.5) < tol
-
-quad1D = Quadrature(Triangle{3}, 1, 2)
-I2 = integrate(P3, quad1D)
-
-@test abs(I2 - 5.5) < tol
-
-quad1D = Quadrature(Triangle{3}, 1, 3)
-I3 = integrate(P5, quad1D)
-
-@test abs(I3 - 35/4) < tol
-
-quad1D = Quadrature(Triangle{3}, 1, 4)
-I4 = integrate(P7, quad1D)
-
-@test abs(I4 - - 3.5) < tol
-
-quad1D = Quadrature(Triangle{3}, 1, 5)
-I5 = integrate(P9, quad1D)
-
-@test abs(I5 - - 4.5) < tol
+# quad1D = Quadrature(Triangle{3}, 1, 1)
+# I1 = integrate(P1, quad1D)
+#
+# @test abs(I1 - 6.5) < tol
+#
+# quad1D = Quadrature(Triangle{3}, 1, 2)
+# I2 = integrate(P3, quad1D)
+#
+# @test abs(I2 - 5.5) < tol
+#
+# quad1D = Quadrature(Triangle{3}, 1, 3)
+# I3 = integrate(P5, quad1D)
+#
+# @test abs(I3 - 35/4) < tol
+#
+# quad1D = Quadrature(Triangle{3}, 1, 4)
+# I4 = integrate(P7, quad1D)
+#
+# @test abs(I4 - - 3.5) < tol
+#
+# quad1D = Quadrature(Triangle{3}, 1, 5)
+# I5 = integrate(P9, quad1D)
+#
+# @test abs(I5 - - 4.5) < tol
 
 
 ###############################################################

@@ -1,6 +1,6 @@
 module resolve_interface
 
-using basis, reinitialize_levelset
+using basis, reinitialize_levelset, LinearAlgebra
 
 export interfaceEdgeIntersection
 
@@ -11,28 +11,36 @@ return the points ON THE REFERENCE ELEMENT representing the intersection
 of the interface and the boundary of the element.
 """
 function interfaceEdgeIntersection(distance::Array{Float64, 1},
-    fbasis::Basis{T}) where T
+    fbasis::Basis)
 
-    nbr = neighborNodes(T)
     nnodes = length(fbasis.support_points)
-    visited = zeros(Bool, nnodes)
-    projected = Float64[]
-    for I in 1:nnodes
-        for J in nbr[:,I]
-            if !visited[I] || !visited[J]
-                if distance[I]*distance[J] < 0.0
-                    XI = fbasis.support_points[I]
-                    XJ = fbasis.support_points[J]
-                    direction = XJ - XI
-                    X0 = 0.5*(XI + XJ)
-                    append!(projected, project(X0, distance, direction, fbasis))
-                    visited[I] = true
-                    visited[J] = true
-                end
+    neighbors = circshift(1:nnodes, -1)
+    # In a 2D element for a well resolved interface,
+    # there can be only two edge intersections!
+    projected = zeros(length(fbasis.support_points[1]),2)
+    count = 0
+    for node1 in 1:nnodes
+        node2 = neighbors[node1]
+        if distance[node1]*distance[node2] < 0.0
+            X1 = fbasis.support_points[node1]
+            X2 = fbasis.support_points[node2]
+            D1 = distance[node1]
+            D2 = distance[node2]
+            direction = (X2 - X1)/norm(X2 - X1)
+            X0 = 0.5*(X1 + X2)
+            projected_point = project(X0, distance, direction, fbasis)
+            if (D2 - D1 > 0.0)
+                projected[:,1] = projected_point
+            else
+                projected[:,2] = projected_point
+            end
+            count += 1
+            if count > 2
+                error("More than 2 edge crossings detected. Aborting.")
             end
         end
     end
-    return reshape(projected, 2, :)
+    return projected
 end
 
 """
