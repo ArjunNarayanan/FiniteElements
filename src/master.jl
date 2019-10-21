@@ -101,26 +101,6 @@ struct Master{T <: Triangulation}
 		end
 		new{T}(basis, quadrature, data)
 	end
-	"""
-		Master(surfaceElement::Type{<:Triangulation{N,2}},
-			quad::Quadrilateral{Line,p}) where {N,p}
-	special constructor for performing 1D quadrature on a 2D domain.
-	This master element is used for performing 1D integration over an evolving
-	interface, and is expected to be reinitialized several times. Therefore
-	the struct is initialized to zero values.
-	"""
-	function Master(surfaceElement::Type{<:Triangulation{N,2}},
-		quadrature::Quadrature{Line,p}, args::Vararg{Symbol}) where {N,p}
-		basis = Basis(surfaceElement)
-		data = Dict{Symbol, Array}()
-
-		# for arg in args
-		# 	if eval(arg) != nothing
-		# 		data[arg] = eval(arg)(basis, quadrature)
-		# 	end
-		# end
-		# new{T}(basis, quadrature, data)
-	end
 end
 
 
