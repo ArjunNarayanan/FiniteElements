@@ -30,28 +30,6 @@ exp_jac = [3.0 1.0
 ##################################################
 
 
-##################################################
-# Test edge mapping on Triangle{3} with 3 point rule
-
-t1 = [1.0  4.0  2.0
-	  1.0  2.0  4.0]
-
-quad1D = Quadrature(Triangle{3}, 1, 3)
-mapping = Map{Triangle{3},2}(quad1D, :coordinates, :gradients)
-reinit(mapping, t1)
-
-exp_coords = [ [1+3*(1-sqrt(3/5))/2, 1+(1-sqrt(3/5))/2],
-			   [1+3/2, 1+ 1/2],
-			   [1+3*(1+sqrt(3/5))/2, 1+(1+sqrt(3/5))/2] ]
-@test norm([mapping[:coordinates][I] - exp_coords[I] for I = 1:3]) < tol
-
-
-
-
-
-
-##################################################
-
 
 ##################################################
 # Test mapping on Quadrilateral{1} with 3 point rule

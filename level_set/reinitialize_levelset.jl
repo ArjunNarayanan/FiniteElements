@@ -26,7 +26,7 @@ interpolation of `values` by `basis` using Newton iterations. The
 point `x0` is ASSUMED TO BE IN THE REFERENCE ELEMENT COORDINATES.
 """
 function project(x0::Array{Float64, 1}, values::Array{Float64, 1},
-    basis::Basis{T}; tol = 1e-3, maxiter = 100) where T
+    basis::Basis{T}; tol = 1e-3, maxiter = 20) where T
 
     elDia = diameter(T)
     xprev = copy(x0)
@@ -66,12 +66,13 @@ end
         direction::Array{Float64, 1}, basis::Basis{T};
         tol = 1e-3, maxiter = 100) where T
 project the point `x0` onto the zero level set of the interpolation of `values`
-along `direction` by `basis` using Newton iterations. The point `x0` is ASSUMED
-TO BE IN THE REFERENCE ELEMENT COORDINATES.
+along `direction` by `basis` using Newton iterations.
+`direction` is expected to be normalized.
+The point `x0` is ASSUMED TO BE IN THE REFERENCE ELEMENT COORDINATES.
 """
 function project(x0::Array{Float64, 1}, values::Array{Float64, 1},
     direction::Array{Float64, 1}, basis::Basis{T}; tol = 1e-3,
-    maxiter = 100) where T
+    maxiter = 20) where T
 
     elDia = diameter(T)
     xprev = copy(x0)
