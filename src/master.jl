@@ -73,7 +73,7 @@ are to be computed.
 """
 struct Master{T <: Triangulation}
 	basis::Basis{T}
-	quadrature::Quadrature
+	quadrature::Quadrature{P} where {P >: T}
 	data::Dict{Symbol, Array}
 	function Master(T::Type{<:Triangulation}, order::Int64,
 		args::Vararg{Symbol})
