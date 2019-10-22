@@ -2,7 +2,7 @@ module basis
 
 using geometry, ForwardDiff
 
-export Basis, diameter, centroid, interpolate, gradient
+export Basis, diameter, centroid, interpolate, gradient, evaluate
 
 """
 	diameter(::Type{<:Line})
@@ -183,6 +183,21 @@ function interpolate(values::Array{Float64, 2}, xi::Array{Float64, 1},
 end
 
 """
+    interpolate(values::Array{Float64, 2}, xi::Array{Float64, 2},
+        basis::Basis)
+broadcast the `interpolate` operation onto the columns of `xi`.
+"""
+function interpolate(values::Array{Float64, 2}, xi::Array{Float64, 2},
+    basis::Basis)
+
+    val = zeros(size(values)[1], size(xi)[2])
+    for J in 1:size(xi)[2]
+        val[:,J] = interpolate(values, xi[:,J], basis)
+    end
+    return val
+end
+
+"""
     gradient(values::Array{Float64, 1}, xi::Array{Float64, 1},
         basis::Basis)
 interpolate the gradient of the nodal `values` on the master element
@@ -199,6 +214,20 @@ function gradient(values::Array{Float64, 1}, xi::Array{Float64, 1},
     return val
 end
 
+"""
+	evaluate(basis::Basis, coordinates::Array{Float64, 2})
+return an array of size `(n_basis_functions, n_points)` representing the
+value of the `basis` at each point in `coordinates`.
+"""
+function evaluate(basis::Basis, coordinates::Array{Array{Float64, 1}})
+	val = zeros(length(basis.functions), length(coordinates))
+	for J in eachindex(coordinates)
+		for I in eachindex(basis.functions)
+			val[I,J] = basis.functions[I](coordinates[J])
+		end
+	end
+	return val
+end
 
 # module basis ends here
 end

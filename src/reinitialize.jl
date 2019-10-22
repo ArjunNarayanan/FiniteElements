@@ -7,7 +7,7 @@ export reinit
 
 """
 	reinit(my_array::Array{Array{Float64}, 2})
-Reinitialize all entries to zero. Specifically for 
+Reinitialize all entries to zero. Specifically for
 `element_matrix` and `element_rhs` arrays.
 """
 function reinit(my_array::Array{Array{Float64}})
