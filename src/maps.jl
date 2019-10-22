@@ -17,7 +17,7 @@ quadrature points in `spacedim` dimensional space.
 """
 function coordinates(data::Dict, nq::Int64, dim::Int64,
 					spacedim::Int64, master_elmt::Master)
-	data[:coordinates] = [zeros(spacedim) for i in 1:nq]
+	data[:coordinates] = zeros(spacedim, nq)
 end
 
 
@@ -140,7 +140,7 @@ function coordinates(mapping::Map{T,dim,spacedim},
 	nodal_coordinates::Array{Float64, 2}) where {T,dim,spacedim}
 	for q in 1:length(mapping.master.quadrature.points)
 		for i in 1:spacedim
-			mapping.data[:coordinates][q][i] = sum([mapping.master[:values][I,q]*nodal_coordinates[i,I] for I in 1:length(mapping.master.basis.functions)])
+			mapping.data[:coordinates][i,q] = sum([mapping.master[:values][I,q]*nodal_coordinates[i,I] for I in 1:length(mapping.master.basis.functions)])
 		end
 	end
 end
