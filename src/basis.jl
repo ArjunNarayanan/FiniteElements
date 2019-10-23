@@ -219,11 +219,11 @@ end
 return an array of size `(n_basis_functions, n_points)` representing the
 value of the `basis` at each point in `coordinates`.
 """
-function evaluate(basis::Basis, coordinates::Array{Array{Float64, 1}})
-	val = zeros(length(basis.functions), length(coordinates))
-	for J in eachindex(coordinates)
+function evaluate(basis::Basis, coordinates::Array{Float64, 2})
+	val = zeros(length(basis.functions), size(coordinates)[2])
+	for J in 1:size(coordinates)[2]
 		for I in eachindex(basis.functions)
-			val[I,J] = basis.functions[I](coordinates[J])
+			val[I,J] = basis.functions[I](coordinates[:,J])
 		end
 	end
 	return val
