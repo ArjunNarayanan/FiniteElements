@@ -21,7 +21,7 @@ function bilinearForm(KIJ::Array{Float64, 2}, ∇ϕI::Array{Float64, 1},
 end
 
 """
-	function bilinearForm(nodes::Array{Float64, 2},
+	bilinearForm(nodes::Array{Float64, 2},
 		mapping::Map, assembler::Assembler, KIJ::Array{Float64, 2},
 		lambda::Function, mu::Function)
 Compute the bilinear form for the equilibrium equation of linear elasticity
@@ -47,6 +47,39 @@ function bilinearForm(nodes::Array{Float64, 2},
 			for J in 1:Nnodes
 				∇ϕJ = mapping[:gradients][J,q]
 				bilinearForm(KIJ, ∇ϕI, ∇ϕJ, λq, μq, kronecker_delta)
+				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
+			end
+		end
+	end
+end
+
+"""
+	bilinearForm(nodes::Array{Float64, 2},
+		mapping::Map{T,dim,spacedim}, assembler::Assembler, lambda::Float64,
+		mu::Float64) where {T,dim,spacedim}
+Compute the bilinear form for the equilibrium equation of linear elasticity
+on a particular element. Lame coefficients `lambda, mu` are taken
+constant throughout the element.
+"""
+function bilinearForm(nodes::Array{Float64, 2},
+	mapping::Map{T,dim,spacedim}, assembler::Assembler, lambda::Float64,
+	mu::Float64) where {T,dim,spacedim}
+
+	kronecker_delta = zeros(spacedim, spacedim)
+	KIJ = zeros(spacedim, spacedim)
+
+	reinit(assembler)
+	reinit(mapping, nodes)
+
+	Nnodes = length(mapping.master.basis.functions)
+
+	for q in eachindex(mapping.master.quadrature.points)
+		(pq, wq) = mapping.master.quadrature[q]
+		for I in 1:Nnodes
+			∇ϕI = mapping[:gradients][I,q]
+			for J in 1:Nnodes
+				∇ϕJ = mapping[:gradients][J,q]
+				bilinearForm(KIJ, ∇ϕI, ∇ϕJ, lambda, mu, kronecker_delta)
 				assembler.element_matrix[I,J] += KIJ*mapping[:dx][q]
 			end
 		end

@@ -169,8 +169,8 @@ end
 		λc::Float64, μc::Float64, λs::Float64, μs::Float64, θ0::Float64;
 		q_order = 1) where spacedim
 Assemble the `GlobalSystem` for the current `mesh`. `λc, μc` are the Lame coefficients
-in the core, and `λs, μs` are the Lame coefficients in the shell.
-`θ0` is the volumetric transformation strain in the shell. `q_order` is the quadrature
+in the parent, and `λs, μs` are the Lame coefficients in the product.
+`θ0` is the volumetric transformation strain in the product. `q_order` is the quadrature
 order to be used.
 """
 function assembleSystem(mesh::Mesh{spacedim},
@@ -189,9 +189,9 @@ function assembleSystem(mesh::Mesh{spacedim},
 		Es[i,j,k,l] = λs*δ[i,j]*δ[k,l] + μs*(δ[i,k]*δ[j,l] + δ[i,l]*δ[j,k])
 	end
 
-	core_elTypes = keys(mesh.data[:element_groups]["core"])
-	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
-	elTypes = union(core_elTypes, shell_elTypes)
+	parent_elTypes = keys(mesh.data[:element_groups]["parent"])
+	product_elTypes = keys(mesh.data[:element_groups]["product"])
+	elTypes = union(parent_elTypes, product_elTypes)
 
 	total_ndofs = size(mesh.data[:nodes])[2]*dofs
 
@@ -214,10 +214,10 @@ function assembleSystem(mesh::Mesh{spacedim},
 
 	println("\tAssembling CORE elements")
 
-	@time for elType in core_elTypes
+	@time for elType in parent_elTypes
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
-		for elem_id in mesh.data[:element_groups]["core"][elType]
+		for elem_id in mesh.data[:element_groups]["parent"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
@@ -230,10 +230,10 @@ function assembleSystem(mesh::Mesh{spacedim},
 
 	println("\tAssembling SHELL elements")
 
-	@time for elType in shell_elTypes
+	@time for elType in product_elTypes
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
-		for elem_id in mesh.data[:element_groups]["shell"][elType]
+		for elem_id in mesh.data[:element_groups]["product"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping,
@@ -258,7 +258,7 @@ end
 		θ0::Float64; q_order = 1) where spacedim
 Assemble the `GlobalSystem` for the current `mesh`. The Lame coefficients
 `λ, μ` are given as functions over the domain. `θ0` is the volumetric
-transformation strain in the shell. `q_order` is the quadrature order to be
+transformation strain in the product. `q_order` is the quadrature order to be
 used.
 """
 function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
@@ -266,9 +266,9 @@ function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
 
 	ϵt = θ0/3*δ
 
-	core_elTypes = keys(mesh.data[:element_groups]["core"])
-	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
-	elTypes = union(core_elTypes, shell_elTypes)
+	parent_elTypes = keys(mesh.data[:element_groups]["parent"])
+	product_elTypes = keys(mesh.data[:element_groups]["product"])
+	elTypes = union(parent_elTypes, product_elTypes)
 
 	total_ndofs = size(mesh.data[:nodes])[2]*dofs
 
@@ -292,10 +292,10 @@ function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
 
 	println("\tAssembling CORE elements")
 
-	@time for elType in core_elTypes
+	@time for elType in parent_elTypes
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
-		for elem_id in mesh.data[:element_groups]["core"][elType]
+		for elem_id in mesh.data[:element_groups]["parent"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping, assembler, KIJ, λ, μ)
@@ -306,10 +306,10 @@ function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
 
 	println("\tAssembling SHELL elements")
 
-	@time for elType in shell_elTypes
+	@time for elType in product_elTypes
 		mapping = mapping_dict[elType]
 		assembler = assembler_dict[elType]
-		for elem_id in mesh.data[:element_groups]["shell"][elType]
+		for elem_id in mesh.data[:element_groups]["product"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			assembleElementMatrix(nodes, mapping, assembler, KIJ, λ, μ)
@@ -396,7 +396,7 @@ function applyFreeSlipInterface(system::GlobalSystem,
 	ndofs = system.ndofs
 
 	println("\tEnforcing FREE SLIP interface condition")
-	elTypes = keys(mesh.data[:element_groups]["interface_core"])
+	elTypes = keys(mesh.data[:element_groups]["interface_parent"])
 
 	penalty = penalty*maximum(abs.(diag(system.K)))
 
@@ -409,9 +409,9 @@ function applyFreeSlipInterface(system::GlobalSystem,
 	@time for elType in elTypes
 		mapping = Map{elType,spacedim}(q_order, :values, :gradients)
 		assembler = Assembler(elType, ndofs)
-		for i in eachindex(mesh.data[:element_groups]["interface_core"][elType])
-			c_el_id = mesh.data[:element_groups]["interface_core"][elType][i]
-			s_el_id = mesh.data[:element_groups]["interface_shell"][elType][i]
+		for i in eachindex(mesh.data[:element_groups]["interface_parent"][elType])
+			c_el_id = mesh.data[:element_groups]["interface_parent"][elType][i]
+			s_el_id = mesh.data[:element_groups]["interface_product"][elType][i]
 
 			c_n_ids = mesh.data[:elements][elType][:, c_el_id]
 			s_n_ids = mesh.data[:elements][elType][:, s_el_id]
@@ -476,7 +476,7 @@ end
 """
 	duplicateInterfaceNodes(mesh::Mesh{2})
 Duplicate the nodes on the interface. Modify the connectivity
-of shell elements to refer to these duplicated nodes. Used to
+of product elements to refer to these duplicated nodes. Used to
 model an incoherent interface.
 """
 function duplicateInterfaceNodes(mesh::Mesh{2})
@@ -492,34 +492,34 @@ function duplicateInterfaceNodes(mesh::Mesh{2})
 
 	##############################################
 	# Second: redefine mesh.data[:element_groups]["interface"]
-	mesh.data[:element_groups]["interface_core"] = pop!(mesh.data[:element_groups], "interface")
+	mesh.data[:element_groups]["interface_parent"] = pop!(mesh.data[:element_groups], "interface")
 	##############################################
 
 	##############################################
-	# Third: Replace all occurrences of the old node ids in the shell
+	# Third: Replace all occurrences of the old node ids in the product
 	# elements with the new node ids
-	for key in keys(mesh.data[:element_groups]["shell"])
-		shell_2D_elmt_ids = mesh.data[:element_groups]["shell"][key]
-		shell_2D_elmts = mesh.data[:elements][key][:,shell_2D_elmt_ids]
-		replaceNodeIDs!(shell_2D_elmts, old_int_node_ids, new_int_node_ids)
-		mesh.data[:elements][key][:,shell_2D_elmt_ids] = shell_2D_elmts
+	for key in keys(mesh.data[:element_groups]["product"])
+		product_2D_elmt_ids = mesh.data[:element_groups]["product"][key]
+		product_2D_elmts = mesh.data[:elements][key][:,product_2D_elmt_ids]
+		replaceNodeIDs!(product_2D_elmts, old_int_node_ids, new_int_node_ids)
+		mesh.data[:elements][key][:,product_2D_elmt_ids] = product_2D_elmts
 	end
 	##############################################
 
 	##############################################
 	# Fourth: add the additional 1D elements for the new nodes
 	# into mesh.data[:elements]
-	mesh.data[:element_groups]["interface_shell"] = Dict()
-	for key in keys(mesh.data[:element_groups]["interface_core"])
-		core_1D_elmt_ids = mesh.data[:element_groups]["interface_core"][key]
-		core_1D_elmts = mesh.data[:elements][key][:, core_1D_elmt_ids]
-		shell_1D_elmts = copy(core_1D_elmts)
-		replaceNodeIDs!(shell_1D_elmts, old_int_node_ids, new_int_node_ids)
+	mesh.data[:element_groups]["interface_product"] = Dict()
+	for key in keys(mesh.data[:element_groups]["interface_parent"])
+		parent_1D_elmt_ids = mesh.data[:element_groups]["interface_parent"][key]
+		parent_1D_elmts = mesh.data[:elements][key][:, parent_1D_elmt_ids]
+		product_1D_elmts = copy(parent_1D_elmts)
+		replaceNodeIDs!(product_1D_elmts, old_int_node_ids, new_int_node_ids)
 		e_last = size(mesh.data[:elements][key])[2]
-		mesh.data[:elements][key] = hcat(mesh.data[:elements][key], shell_1D_elmts)
-		n_shell_1D_elmts = size(shell_1D_elmts)[2]
-		shell_1D_elmt_ids = collect(range(e_last+1, length = n_shell_1D_elmts))
-		mesh.data[:element_groups]["interface_shell"][key] = shell_1D_elmt_ids
+		mesh.data[:elements][key] = hcat(mesh.data[:elements][key], product_1D_elmts)
+		n_product_1D_elmts = size(product_1D_elmts)[2]
+		product_1D_elmt_ids = collect(range(e_last+1, length = n_product_1D_elmts))
+		mesh.data[:element_groups]["interface_product"][key] = product_1D_elmt_ids
 	end
 	##############################################
 end
@@ -568,9 +568,9 @@ components.
 function computeElementAveragedStrain(mesh::Mesh,
 									  displacement::Array{Float64, 2};
 									  q_order = 1)
-	core_elTypes = keys(mesh.data[:element_groups]["core"])
-	shell_elTypes = keys(mesh.data[:element_groups]["shell"])
-	elTypes = union(core_elTypes, shell_elTypes)
+	parent_elTypes = keys(mesh.data[:element_groups]["parent"])
+	product_elTypes = keys(mesh.data[:element_groups]["product"])
+	elTypes = union(parent_elTypes, product_elTypes)
 
 	mapping_dict = Dict()
 	strain_dict = Dict()
@@ -583,20 +583,20 @@ function computeElementAveragedStrain(mesh::Mesh,
 
 	println("\tComputing element-averaged strain for CORE")
 
-	@time for elType in core_elTypes
+	@time for elType in parent_elTypes
 		mapping = mapping_dict[elType]
 		strain = strain_dict[elType]
-		for elem_id in mesh.data[:element_groups]["core"][elType]
+		for elem_id in mesh.data[:element_groups]["parent"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			updateStrain(strain, elem_id, node_ids, nodes, mapping, displacement)
 		end
 	end
 	println("\tComputing element-averaged strain for SHELL")
-	@time for elType in shell_elTypes
+	@time for elType in product_elTypes
 		mapping = mapping_dict[elType]
 		strain = strain_dict[elType]
-		for elem_id in mesh.data[:element_groups]["shell"][elType]
+		for elem_id in mesh.data[:element_groups]["product"][elType]
 			node_ids = mesh.data[:elements][elType][:, elem_id]
 			nodes = mesh.data[:nodes][:, node_ids]
 			updateStrain(strain, elem_id, node_ids, nodes, mapping, displacement)
@@ -780,10 +780,10 @@ function computeElementAveragedStress(mesh::Mesh,
 
 	println("Computing element averaged stress for CORE")
 
-	@time for etype in keys(mesh.data[:element_groups]["core"])
+	@time for etype in keys(mesh.data[:element_groups]["parent"])
 		strain = strain_dict[etype]
 		stress = stress_dict[etype]
-		for elem_id in mesh.data[:element_groups]["core"][etype]
+		for elem_id in mesh.data[:element_groups]["parent"][etype]
 			sigma = view(stress, :, elem_id)
 			epsilon = view(strain, :, elem_id)
 			updateStress(sigma, epsilon, λc, μc, 0.0)
@@ -792,10 +792,10 @@ function computeElementAveragedStress(mesh::Mesh,
 
 	println("Computing element averaged stress for SHELL")
 
-	@time for etype in keys(mesh.data[:element_groups]["shell"])
+	@time for etype in keys(mesh.data[:element_groups]["product"])
 		strain = strain_dict[etype]
 		stress = stress_dict[etype]
-		for elem_id in mesh.data[:element_groups]["shell"][etype]
+		for elem_id in mesh.data[:element_groups]["product"][etype]
 			sigma = view(stress, :, elem_id)
 			epsilon = view(strain, :, elem_id)
 			updateStress(sigma, epsilon, λs, μs, θ0)
