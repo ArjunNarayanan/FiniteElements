@@ -229,18 +229,20 @@ mutable struct GlobalSystem
 	D::Array{Float64, 1}
 	F::SparseVector{Float64, Int64}
 	ndofs::Int64
-	function GlobalSystem(system_matrix::SystemMatrix,
-			system_rhs::SystemRHS,
-			ndofs::Int64)
-		K = sparse(system_matrix.I,
-				   system_matrix.J,
-				   system_matrix.vals)
-		N = size(K)[1]
-		F = sparsevec(system_rhs.I,
-					  system_rhs.vals,
-					  N)
+	"""
+		GlobalSystem(system_matrix::SystemMatrix, system_rhs::SystemRHS,
+			dofs_per_node::Int64, number_of_nodes::Int64)
+	assemble the global linear system from the `system_matrix`, `system_rhs`.
+	"""
+	function GlobalSystem(system_matrix::SystemMatrix, system_rhs::SystemRHS,
+		dofs_per_node::Int64, number_of_nodes::Int64)
+
+		ndofs = dofs_per_node*number_of_nodes
+		K = sparse(system_matrix.I, system_matrix.J, system_matrix.vals, ndofs,
+			ndofs)
+		F = sparsevec(system_rhs.I, system_rhs.vals, ndofs)
 		D = zeros(F.n)
-		new(K, D, F, ndofs)
+		new(K, D, F, dofs_per_node)
 	end
 end
 

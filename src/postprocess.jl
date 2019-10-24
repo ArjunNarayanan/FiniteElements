@@ -1,7 +1,7 @@
 module postprocess
 using geometry, WriteVTK
 
-export Output, writePointVectors, writeCellScalars
+export Output, writePointVectors, writeCellScalars, writePointScalar
 
 
 geom_to_vtk = Dict(Vertex => VTKCellTypes.VTK_VERTEX,
@@ -67,6 +67,19 @@ function writePointVectors(output::Output,
 	else
 		error("size(vector)[1] should be 2 or 3")
 	end
+end
+
+"""
+	writePointScalar(output::Output, scalar::Array{Float64, 1},
+		var_name::String)
+Add `scalar` as point data into `output.vtkfile` with variable name `var_name`.
+`scalar` must be of length `(num_nodes)` where `num_nodes` is the number
+of nodes in the mesh used to initialize `output`.
+"""
+function writePointScalar(output::Output, scalar::Array{Float64, 1},
+	var_name::String)
+
+	vtk_point_data(output.vtkfile, scalar, var_name)
 end
 
 """

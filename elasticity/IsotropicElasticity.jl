@@ -54,22 +54,17 @@ function bilinearForm(nodes::Array{Float64, 2},
 end
 
 """
-	bilinearForm(nodes::Array{Float64, 2},
-		mapping::Map{T,dim,spacedim}, assembler::Assembler, lambda::Float64,
-		mu::Float64) where {T,dim,spacedim}
+	bilinearForm(mapping::Map{T,dim,spacedim}, assembler::Assembler,
+		lambda::Float64, mu::Float64) where {T,dim,spacedim}
 Compute the bilinear form for the equilibrium equation of linear elasticity
-on a particular element. Lame coefficients `lambda, mu` are taken
-constant throughout the element.
+on an element mapped by `mapping`. Lame coefficients `lambda, mu` are taken
+constant throughout the element. Result is added into `assembler`.
 """
-function bilinearForm(nodes::Array{Float64, 2},
-	mapping::Map{T,dim,spacedim}, assembler::Assembler, lambda::Float64,
-	mu::Float64) where {T,dim,spacedim}
+function bilinearForm(mapping::Map{T,dim,spacedim}, assembler::Assembler,
+	lambda::Float64, mu::Float64) where {T,dim,spacedim}
 
-	kronecker_delta = zeros(spacedim, spacedim)
+	kronecker_delta = diagm(0 => ones(spacedim))
 	KIJ = zeros(spacedim, spacedim)
-
-	reinit(assembler)
-	reinit(mapping, nodes)
 
 	Nnodes = length(mapping.master.basis.functions)
 
@@ -102,7 +97,6 @@ function bilinearForm(lambda::Function, mu::Function, element_group::String,
     elTypes = keys(mesh[:element_groups][element_group])
 
     KIJ = zeros(spacedim,spacedim)
-    FI = zeros(spacedim)
 
 	println("Assembling bilinear form on "*element_group)
 
@@ -148,6 +142,7 @@ function linearForm(force::Function, nodes::Array{Float64, 2}, mapping::Map,
 	end
 end
 
+
 """
 	linearForm(force::Function, element_group::String,
 		mesh::Mesh{spacedim}, q_order::Int64,
@@ -177,32 +172,6 @@ function linearForm(force::Function, element_group::String,
 				assembler.ndofs)
 		end
 	end
-end
-
-"""
-	applyTraction(traction::Function, element_group::String,
-		mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS)
-Treats the function `traction` as a traction force applied on the group
-specified by `element_group`. This is just a convenience function to
-distinguish from a "body force" type of load.
-"""
-function applyTraction(traction::Function, element_group::String,
-	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
-
-	linearForm(traction, element_group, mesh, q_order, system_rhs)
-end
-
-"""
-	applyBodyForce(body_force::Function, element_group::String,
-		mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS)
-Treats the function `body_force` as a body force applied on the group
-specified by `element_group`. In linear elasticity, the body force takes on a
-negative sign when applied to the right-hand-side vector of the linear system.
-"""
-function applyBodyForce(body_force::Function, element_group::String,
-	mesh::Mesh{spacedim}, q_order::Int64, system_rhs::SystemRHS) where spacedim
-
-	linearForm(x -> body_force(x), element_group, mesh, q_order, system_rhs)
 end
 
 # module isotropic ends here

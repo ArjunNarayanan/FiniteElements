@@ -7,12 +7,12 @@ export applyDirichletBCs, Constraint, applyConstraints
 
 """
 	ApplyDirichletBCs(global_system::GlobalSystem, index::Int64,
-	value::Float64)	
-Modify `global_system` so that the solution degree of 
+	value::Float64)
+Modify `global_system` so that the solution degree of
 freedom corresponding to the global `index` is assigned
 `value`.
 """
-function applyDirichletBCs(global_system::GlobalSystem, 
+function applyDirichletBCs(global_system::GlobalSystem,
 					index::Int64,
 					value::Float64)
 	modify_rhs = global_system.K[:,index]
@@ -71,17 +71,17 @@ end
 """
 	Constraint
 Represents a linear constraint equation that can be applied to a global
-linear system of equations. The constraint equation is to be of 
+linear system of equations. The constraint equation is to be of
 the form:
 	coeff*u[index] = A1*u[i1] + A2*u[i2] + ... + inhomogeneity
 `index` cannot appear on the right-hand-side.
 # Attributes:
-- `index::Int64` - the global index of the degree-of-freedom being 
+- `index::Int64` - the global index of the degree-of-freedom being
 constrained.
-- `coeff::Float64` - the coefficient of the degree-of-freedom being 
+- `coeff::Float64` - the coefficient of the degree-of-freedom being
 constrained.
-- `constrain_to::Array{Tuple{Int64, Float64}}` - Array of tuples 
-of the indices of the degrees of freedom appearing on the right-hand-side 
+- `constrain_to::Array{Tuple{Int64, Float64}}` - Array of tuples
+of the indices of the degrees of freedom appearing on the right-hand-side
 of the constraint equation along with their coefficients.
 - `inhomogeneity` - the inhomogeneous term in the constraint equation.
 """
@@ -90,7 +90,7 @@ struct Constraint
 	coeff::Float64
 	constrain_to::Array{Tuple{Int64, Float64}}
 	inhomogeneity::Float64
-	function Constraint(index::Int64, 
+	function Constraint(index::Int64,
 						coeff::Float64,
 						constrain_to::Array{Tuple{Int64, Float64}},
 						inhomogeneity::Float64)
@@ -104,7 +104,7 @@ end
 
 
 """
-	applyConstraints(system::GlobalSystem, 
+	applyConstraints(system::GlobalSystem,
 						constraint::Constraint)
 Modify `system` to ensure that the constraint equation defined by `constraint` is met.
 """

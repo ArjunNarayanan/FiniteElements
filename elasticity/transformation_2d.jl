@@ -193,7 +193,8 @@ function assembleSystem(mesh::Mesh{spacedim},
 	product_elTypes = keys(mesh.data[:element_groups]["product"])
 	elTypes = union(parent_elTypes, product_elTypes)
 
-	total_ndofs = size(mesh.data[:nodes])[2]*dofs
+	number_of_nodes = size(mesh[:nodes])[2]
+	total_ndofs = number_of_nodes*dofs
 
 	println("----------SOLVING FE PROBLEM----------")
 	println("\tTotal Number of DOFs = ", total_ndofs)
@@ -248,7 +249,7 @@ function assembleSystem(mesh::Mesh{spacedim},
 		end
 	end
 
-	system = GlobalSystem(system_matrix, system_rhs, dofs)
+	system = GlobalSystem(system_matrix, system_rhs, dofs, number_of_nodes)
 	return system
 end
 
@@ -270,7 +271,8 @@ function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
 	product_elTypes = keys(mesh.data[:element_groups]["product"])
 	elTypes = union(parent_elTypes, product_elTypes)
 
-	total_ndofs = size(mesh.data[:nodes])[2]*dofs
+	number_of_nodes = size(mesh.data[:nodes])[2]
+	total_ndofs = number_of_nodes*dofs
 
 	println("----------SOLVING FE PROBLEM----------")
 	println("\tTotal Number of DOFs = ", total_ndofs)
@@ -321,7 +323,7 @@ function assembleSystem(mesh::Mesh{spacedim}, λ::Function, μ::Function,
 		end
 	end
 
-	system = GlobalSystem(system_matrix, system_rhs, dofs)
+	system = GlobalSystem(system_matrix, system_rhs, dofs, number_of_nodes)
 	return system
 end
 
