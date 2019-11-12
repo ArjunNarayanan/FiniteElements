@@ -61,6 +61,19 @@ function interfaceEdgeIntersection(nodes::Array{Float64, 2},
     return projected
 end
 
+"""
+    fitNormal(nodes::Array{Float64, 2}, distance::Array{Float64, 1},
+        x0::Array{Float64, 1})
+returns the `normal` to a hyperplane passing through `x0` such that the
+distance of `nodes` to the hyperplane is approximately `distance` (in a least-
+squares sense).
+"""
+function fitNormal(nodes::Array{Float64, 2}, distance::Array{Float64, 1},
+    x0::Array{Float64, 1})
+
+    A = nodes .- x0
+    return (A*A')\(A*distance)
+end
 
 
 # module resolve_interface ends here
