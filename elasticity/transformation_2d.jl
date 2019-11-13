@@ -550,7 +550,7 @@ function updateStrain(strain::Array{Float64, 2},
 		for I in 1:Nnodes
 			strain[1, elem_id] += mapping[:gradients][I,q][1]*displacement[1,node_ids[I]]*w
 			strain[2, elem_id] += 0.5*( mapping[:gradients][I,q][2]*displacement[1,node_ids[I]] +
-										mapping[:gradients][I,q][q]*displacement[2,node_ids[I]] )*w
+										mapping[:gradients][I,q][1]*displacement[2,node_ids[I]] )*w
 			strain[3, elem_id] += mapping[:gradients][I,q][2]*displacement[2,node_ids[I]]*w
 		end
 	end
