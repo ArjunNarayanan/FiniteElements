@@ -241,9 +241,15 @@ the given `basis`.
 function gradient(values::Array{Float64, 2}, xi::Array{Float64, 1},
 	basis::Basis)
 
-	dim, nbasis = size(values)
-	@assert nbasis = length(basis.support_points)
-
+	num_components, num_basis = size(values)
+	@assert num_basis == length(basis.support_points)
+	dim = length(xi)
+	grad = zeros(num_components,dim)
+	for I in 1:num_basis
+		basis_gradient = ForwardDiff.gradient(basis.functions[I], xi)
+		grad += outer(values[:,I], basis_gradient)
+	end
+	return grad
 end
 
 """
