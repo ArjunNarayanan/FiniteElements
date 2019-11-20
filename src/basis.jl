@@ -215,6 +215,38 @@ function gradient(values::Array{Float64, 1}, xi::Array{Float64, 1},
 end
 
 """
+	outer(v1::AbstractArray, v2::AbstractArray)
+outer product of `v1` and `v2` such that
+`product[i,j] = v1[i]*v2[j]`
+"""
+function outer(v1::AbstractArray, v2::AbstractArray)
+	N = length(v1)
+	M = length(v2)
+	product = zeros(N,M)
+	for j in 1:M
+		for i in 1:N
+			product[i,j] = v1[i]*v2[j]
+		end
+	end
+	return product
+end
+
+"""
+	gradient(values::Array{Float64, 2}, xi::Array{Float64, 1},
+		basis::Basis)
+treat each column of `values` as a vector nodal value, and interpolate the
+gradient of these values on the master element at the coordinate `xi` using
+the given `basis`.
+"""
+function gradient(values::Array{Float64, 2}, xi::Array{Float64, 1},
+	basis::Basis)
+
+	dim, nbasis = size(values)
+	@assert nbasis = length(basis.support_points)
+
+end
+
+"""
 	evaluate(basis::Basis, coordinates::Array{Float64, 2})
 return an array of size `(n_basis_functions, n_points)` representing the
 value of the `basis` at each point in `coordinates`.
